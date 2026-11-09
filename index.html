@@ -1718,8 +1718,19 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     }
     ov.innerHTML = html;
     ov.hidden = false;
-    tone(98, 0, .6, .09, 'sawtooth'); tone(65, 0, .8, .09, 'sine');
-    if (intro.stage === 2) { brass(392, .05, .2, .045); brass(523.25, .25, .45, .045); }
+    // Ring the fight bell as each bot's name slams in; "New facts" doesn't ring it again.
+    if (intro.rung !== intro.stage) {
+      intro.rung = intro.stage;
+      if (intro.stage < 2) {
+        stopSfx('bell');
+        const st = intro.stage, key = intro.key;
+        setTimeout(() => { if (intro && intro.stage === st && intro.key === key) sfxRaw('bell'); }, 500);
+      } else {
+        stopSfx('bell');
+        tone(98, 0, .6, .09, 'sawtooth'); tone(65, 0, .8, .09, 'sine');
+        brass(392, .05, .2, .045); brass(523.25, .25, .45, .045);
+      }
+    }
     const f = ov.querySelector('[data-i="next"], [data-i="fight"]'); if (f) f.focus({ preventScroll: true });
   }
   function closeIntro() { intro = null; $('#introOverlay').hidden = true; $('#introOverlay').innerHTML = ''; }
