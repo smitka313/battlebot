@@ -2010,20 +2010,42 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     catch (e) { toast('Sound works for now, but this browser would not save it for next time'); }
   }
   async function resetCustomSound(k) { delete custom[k]; try { await idbDo('readwrite', st => st.delete(k)); } catch (e) {} }
+  // Sound files kept in a "sounds" folder next to this page (for example sounds/cheer.mp3).
+  // Order of preference: a file you uploaded in this browser, then the sounds folder, then the built-in sound.
+  const folder = {};   // name -> HTMLAudioElement that loaded successfully
+  function loadFolderSounds() {
+    SFX_LIST.forEach(([k]) => {
+      try {
+        const a = new Audio();
+        a.preload = 'auto';
+        a.addEventListener('canplaythrough', () => { folder[k] = a; }, { once: true });
+        a.addEventListener('error', () => { delete folder[k]; }, { once: true });
+        a.src = 'sounds/' + k + '.mp3';
+        a.load();
+      } catch (e) {}
+    });
+  }
   let playingSrc = {};
   function sfxRaw(name) {
     if (S.sound === false) return;
     try {
-      if (playingSrc[name]) { try { playingSrc[name].stop(); } catch (e) {} }
-      playingSrc[name] = custom[name] ? playBuf(custom[name].buffer, 0) : (SFX[name](), null);
+      if (playingSrc[name]) { try { playingSrc[name].stop ? playingSrc[name].stop() : playingSrc[name].pause(); } catch (e) {} }
+      if (custom[name]) { playingSrc[name] = playBuf(custom[name].buffer, 0); return; }
+      if (folder[name]) {
+        const a = folder[name]; a.currentTime = 0;
+        const pr = a.play();
+        if (pr && pr.catch) pr.catch(() => { delete folder[name]; SFX[name](); });
+        playingSrc[name] = a; return;
+      }
+      SFX[name](); playingSrc[name] = null;
     } catch (e) {}
   }
   function openSoundSettings() {
     const rows = SFX_LIST.map(([k, label]) => `<tr>
-      <td><strong>${label}</strong><br><small>${custom[k] ? 'Your file: ' + esc(custom[k].fileName) : 'Built-in sound'}</small></td>
+      <td><strong>${label}</strong><br><small>${custom[k] ? 'Your file: ' + esc(custom[k].fileName) : (folder[k] ? 'Sound file: sounds/' + k + '.mp3' : 'Built-in sound')}</small></td>
       <td class="snd-acts"><button class="btn" type="button" data-d="play:${k}">Play</button>
         <label class="btn" for="sndfile-${k}">Upload</label><input type="file" id="sndfile-${k}" class="vh" accept="audio/*" data-k="${k}">
-        ${custom[k] ? `<button class="btn" type="button" data-d="reset:${k}">Use built-in</button>` : ''}</td></tr>`).join('');
+        ${custom[k] ? `<button class="btn" type="button" data-d="reset:${k}">Remove my file</button>` : ''}</td></tr>`).join('');
     showDialog(`<h3>Sound board sounds</h3>
       <p>Replace any sound with your own MP3 or WAV file. Free sound sites such as Pixabay (pixabay.com/sound-effects) have real crowd cheers, drumrolls and air horns. Your files stay saved in this browser.</p>
       <div class="preview"><table><tbody>${rows}</tbody></table></div>
@@ -2040,6 +2062,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     }));
   }
   loadCustomSounds();
+  loadFolderSounds();
   // Build the crowd sounds in the background so the first press plays instantly.
   [['drumroll', genDrumroll], ['cheer', genCheer], ['ooh', genOoh]].forEach(([n, g], i) => setTimeout(() => { try { getBuf(n, g); } catch (e) {} }, 1500 + i * 400));
 
