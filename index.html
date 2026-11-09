@@ -263,7 +263,7 @@ button.match:hover { border-color: var(--hazard); transform: translateY(-1px); b
 .ring { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: clamp(12px, 2vw, 28px); align-items: stretch; }
 .fighter {
   position: relative; display: flex; flex-direction: column; justify-content: center; gap: .4em;
-  min-height: clamp(220px, 38vh, 440px); padding: clamp(16px, 3vw, 40px); text-align: center;
+  min-height: clamp(200px, 32vh, 400px); padding: clamp(16px, 3vw, 40px); text-align: center;
   background: var(--panel); border: 4px solid var(--corner); border-radius: 14px;
   transition: transform .15s, opacity .2s, border-color .2s, box-shadow .2s;
 }
@@ -278,7 +278,8 @@ button.fighter:hover { transform: translateY(-3px); box-shadow: 0 0 0 4px color-
 .fighter.tbd .fbot { color: var(--muted); font-size: clamp(1.4rem, 3vw, 2.4rem); font-style: italic; text-transform: none; font-weight: 600; }
 .fighter.win { border-color: var(--hazard); box-shadow: 0 0 0 6px var(--win-bg), 0 0 60px rgba(255,184,28,.25); }
 .fighter.win .fbot { color: var(--hazard); }
-.fighter.lose { opacity: .3; }
+.fighter.lose > :not(.farewell) { opacity: .3; }
+.fighter.lose { border-color: var(--line); }
 .stamp {
   position: absolute; top: 14px; right: 14px; transform: rotate(6deg);
   background: var(--hazard); color: var(--hazard-ink); font-family: var(--font-display); font-weight: 800;
@@ -445,6 +446,45 @@ kbd { font-family: var(--font-mono); font-size: .8rem; background: var(--panel-2
 .fo-vs { font-family: var(--font-display); font-weight: 800; font-style: italic; color: var(--hazard); font-size: clamp(2.2rem, 6vw, 5rem); animation: slamIn .5s .45s both; }
 @media (max-width: 640px) { .fo-row { grid-template-columns: minmax(0,1fr); } }
 
+/* Announcer, farewell, sound board, sudden death */
+.call { display: flex; align-items: baseline; justify-content: center; gap: 12px; flex-wrap: wrap; text-align: center; }
+.call-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .16em; color: var(--muted); font-weight: 700; }
+.call-text { font-family: var(--font-display); font-weight: 800; font-style: italic; text-transform: uppercase; color: var(--hazard); font-size: clamp(1.5rem, 3.6vw, 3rem); line-height: 1; letter-spacing: .02em; text-wrap: balance; }
+.call.anim .call-text { animation: callIn .5s cubic-bezier(.2,1.5,.4,1) both; }
+@keyframes callIn { from { transform: scale(1.8) rotate(-3deg); opacity: 0; } }
+.farewell { display: block; margin-top: .8em; padding: .7em .9em; border-radius: 8px; background: var(--panel-2); border: 1px dashed var(--muted); color: var(--fg); font-size: clamp(.95rem, 1.5vw, 1.25rem); line-height: 1.3; text-align: left; }
+.farewell.anim { animation: fwIn .6s 1.4s both; }
+@keyframes fwIn { from { opacity: 0; transform: translateY(12px); } }
+.fw-label { display: block; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .16em; font-size: .7em; color: var(--muted); margin-bottom: 2px; }
+.sfx-board { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 14px; }
+.sfx-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); font-weight: 700; margin-right: 4px; }
+.sfx { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-weight: 600; }
+.sfx:hover { border-color: var(--hazard); }
+.sfx:active { transform: scale(.95); background: var(--win-bg); }
+.sfx kbd { font-size: .7rem; padding: 0 5px; }
+.timer.sudden { border-color: var(--red); box-shadow: 0 0 0 3px color-mix(in srgb, var(--red) 30%, transparent); }
+.sd-tag { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--red); font-size: .95rem; }
+.sd-btn { background: var(--red); border-color: var(--red); color: #fff; animation: pulse .6s ease-in-out infinite alternate; }
+.cd.sd { color: var(--red); text-transform: uppercase; font-size: clamp(4rem, 15vw, 12rem); text-align: center; line-height: .9; font-style: italic; text-shadow: 0 0 60px color-mix(in srgb, var(--red) 50%, transparent); animation: fightIn .7s cubic-bezier(.2,1.6,.4,1) both; }
+.cd.sd.small { color: var(--hazard); font-size: clamp(3rem, 10vw, 8rem); }
+
+/* Awards */
+#awardsOverlay { z-index: 59; background: var(--bg); }
+.awards { width: min(1100px, 100%); display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.aw-card { width: 100%; border: 3px solid var(--hazard); border-radius: 16px; padding: clamp(20px, 4vw, 48px); background: radial-gradient(ellipse at 50% 0%, var(--win-bg), transparent 70%); display: flex; flex-direction: column; align-items: center; gap: 10px; animation: zoomIn .35s cubic-bezier(.2,1.3,.4,1); }
+.aw-kicker { font-size: clamp(.85rem, 1.4vw, 1.1rem); text-transform: uppercase; letter-spacing: .2em; color: var(--muted); font-weight: 700; }
+.aw-title { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; color: var(--hazard); font-size: clamp(2.2rem, 7vw, 5.5rem); line-height: .95; text-wrap: balance; }
+.aw-blurb { font-size: clamp(1.05rem, 2vw, 1.5rem); color: var(--muted); }
+.aw-winner { margin-top: 10px; animation: slamIn .6s 2s cubic-bezier(.2,1.4,.4,1) both; display: flex; flex-direction: column; gap: 4px; }
+.aw-bot { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(2.6rem, 9vw, 7rem); line-height: .95; overflow-wrap: anywhere; }
+.aw-stu { font-size: clamp(1.1rem, 2.4vw, 1.8rem); color: var(--muted); margin-bottom: 8px; }
+.aw-stat { font-family: var(--font-mono); color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 6px 16px; animation: fade .5s 2.4s both; }
+.aw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; width: 100%; }
+.aw-mini { background: var(--panel); border: 1px solid var(--line); border-top: 4px solid var(--hazard); border-radius: 10px; padding: 16px; text-align: left; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.aw-mini-title { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; color: var(--hazard); font-size: 1.3rem; line-height: 1; }
+.aw-mini-bot { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; overflow-wrap: anywhere; }
+.aw-mini-stat { color: var(--muted); font-size: .9rem; }
+
 /* Dramatic shuffle */
 .shuffle-banner {
   position: fixed; left: 50%; bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
@@ -579,6 +619,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
 <div class="overlay" id="battleOverlay" hidden></div>
 <div class="overlay" id="introOverlay" hidden></div>
 <div class="overlay" id="champOverlay" hidden></div>
+<div class="overlay" id="awardsOverlay" hidden></div>
 <div class="countdown" id="countdown" hidden aria-live="assertive"></div>
 <div class="overlay" id="dialog" hidden></div>
 <canvas id="fx" hidden aria-hidden="true"></canvas>
@@ -603,7 +644,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   ];
 
   function fresh() {
-    return { entries: SAMPLE.map(([bot, students]) => ({ id: uid(), bot, students })), winners: {}, methods: {}, rematches: {}, sample: true, scale: 1, rosterOpen: true, thirdPlace: true, timerSecs: 180 };
+    return { entries: SAMPLE.map(([bot, students]) => ({ id: uid(), bot, students })), winners: {}, methods: {}, rematches: {}, overtime: {}, sample: true, scale: 1, rosterOpen: true, thirdPlace: true, timerSecs: 180 };
   }
   function load() {
     try {
@@ -611,12 +652,12 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       if (!raw) return null;
       const d = JSON.parse(raw);
       if (!d || !Array.isArray(d.entries)) return null;
-      return Object.assign({ winners: {}, methods: {}, rematches: {}, scale: 1, rosterOpen: true, sample: false, thirdPlace: true, timerSecs: 180 }, d);
+      return Object.assign({ winners: {}, methods: {}, rematches: {}, overtime: {}, scale: 1, rosterOpen: true, sample: false, thirdPlace: true, timerSecs: 180 }, d);
     } catch (e) { return null; }
   }
   let S = load() || fresh();
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-  function clearResults() { S.winners = {}; S.methods = {}; S.rematches = {}; }
+  function clearResults() { S.winners = {}; S.methods = {}; S.rematches = {}; S.overtime = {}; S.mystery = null; }
 
   const METHODS = [['balloon', 'Balloon pop', 'Balloon pop'], ['pushed', 'Pushed out by opponent', 'Pushed out'], ['forfeit', 'Forfeit', 'Forfeit'], ['error', 'Left arena due to user error', 'User error']];
   const methodLabel = (k, short) => { const m = METHODS.find(x => x[0] === k); return m ? m[short ? 2 : 1] : ''; };
@@ -710,7 +751,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     const old = S.winners[key];
     const mt0 = findMatch(key), who = id && mt0 ? [mt0.a, mt0.b].find(p => p && p.id === id) : null;
     pushUndo(id ? `${who ? who.bot : 'Winner'} wins Battle ${mt0 ? mt0.num : ''}` : `Cleared Battle ${mt0 ? mt0.num : ''}`);
-    cascadeKeys(key, old).forEach(x => { delete S.winners[x]; delete S.methods[x]; delete S.rematches[x]; });
+    cascadeKeys(key, old).forEach(x => { delete S.winners[x]; delete S.methods[x]; delete S.rematches[x]; delete S.overtime[x]; });
     delete S.methods[key];
     if (id) S.winners[key] = id; else delete S.winners[key];
     S.sample = false;
@@ -900,10 +941,10 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   const T = { key: null, remaining: 180, endAt: 0, running: false, done: false, iv: 0, lastSec: null };
   const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   function timerLeft() { return T.running ? Math.max(0, (T.endAt - Date.now()) / 1000) : T.remaining; }
-  function resetTimer(key) { clearInterval(T.iv); Object.assign(T, { key, remaining: S.timerSecs || 180, running: false, done: false, started: false, lastSec: null }); }
+  function resetTimer(key) { clearInterval(T.iv); Object.assign(T, { key, remaining: S.timerSecs || 180, running: false, done: false, started: false, sudden: false, lastSec: null }); }
   function stopTimer() { if (T.running) { T.remaining = timerLeft(); T.running = false; clearInterval(T.iv); } }
   function startTimer() {
-    if (T.done || T.remaining <= 0) { T.remaining = S.timerSecs || 180; T.done = false; }
+    if (T.done || T.remaining <= 0) { T.remaining = S.timerSecs || 180; T.done = false; T.sudden = false; }
     T.endAt = Date.now() + T.remaining * 1000; T.running = true; T.started = true;
     beep(880, .12, .05, 'square');
     clearInterval(T.iv);
@@ -932,6 +973,10 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     const sb = box.querySelector('[data-do="timer"]');
     sb.textContent = T.running ? 'Pause' : (T.done ? 'Restart' : (T.started ? 'Resume' : 'Start'));
     box.querySelectorAll('[data-do="adj"]').forEach(b => b.disabled = T.running);
+    box.classList.toggle('sudden', !!T.sudden);
+    box.querySelector('.sd-tag').hidden = !T.sudden;
+    const mt = findMatch(openKey);
+    box.querySelector('[data-do="sudden"]').hidden = !(T.done && mt && playable(mt) && !mt.winner);
   }
   function timerHTML() {
     return `<div class="timer" aria-label="Battle timer">
@@ -940,6 +985,8 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <button class="btn ghost" type="button" data-do="adj" data-v="30" aria-label="30 seconds more">+30s</button>
       <button class="btn primary" type="button" data-do="timer">Start</button>
       <button class="btn" type="button" data-do="treset">Reset</button>
+      <button class="btn sd-btn" type="button" data-do="sudden" hidden>Sudden death</button>
+      <span class="sd-tag" hidden>Sudden death</span>
     </div>`;
   }
 
@@ -965,6 +1012,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <span class="fbot">${esc(p.bot || 'Unnamed bot')}</span>
       ${p.students ? `<span class="fstu">${esc(p.students)}</span>` : ''}
       ${canPick && !mt.winner ? '<span class="pick">Tap to declare winner</span>' : ''}
+      ${state === 'lose' ? farewellHTML(mt, p) : ''}
     </button>`;
   }
 
@@ -1001,6 +1049,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
         <button class="btn" type="button" data-do="close">Close ✕</button>
       </div>
       ${isFinal && mt.winner ? `<div class="champ-banner">${esc(mt.winner.bot || 'Unnamed bot')} wins the tournament!</div>` : ''}
+      ${callHTML(mt)}
       <div class="ring">
         ${fighterHTML(mt.a, 'a', mt)}
         <div class="vs">VS</div>
@@ -1016,11 +1065,12 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
           <button class="btn" type="button" data-do="rematch" ${playable(mt) && !mt.winner ? '' : 'disabled'}>Rematch / no contest</button>
           <button class="btn" type="button" data-do="intro" ${playable(mt) ? '' : 'disabled'}>Walk-out intros</button>
         </div>
-        <div class="keys" aria-hidden="true"><kbd>←</kbd> red wins <kbd>→</kbd> blue wins <kbd>Space</kbd> timer <kbd>I</kbd> intros <kbd>N</kbd> next <kbd>U</kbd> undo</div>
         <div class="group">
           <button class="btn primary" type="button" data-do="next" ${next && next.key !== mt.key ? '' : 'disabled'}>${next && next.key !== mt.key ? `Next battle ▸ <span style="font-weight:500">(Battle ${next.num})</span>` : 'No other battles ready'}</button>
         </div>
       </div>
+      ${sfxBoardHTML()}
+      <div class="keys" aria-hidden="true"><kbd>←</kbd> red wins <kbd>→</kbd> blue wins <kbd>1–4</kbd> how they won <kbd>Space</kbd> timer <kbd>I</kbd> intros <kbd>N</kbd> next <kbd>U</kbd> undo <kbd>5–0</kbd> sounds</div>
     </div>`;
     ov.hidden = false;
     updateTimerUI();
@@ -1049,6 +1099,12 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
 
   function declare(key, id) {
     stopTimer();
+    const pre = findMatch(key);
+    if (pre) {
+      const loser = pre.a && pre.a.id === id ? pre.b : pre.a;
+      setCall(key, S.overtime[key] ? CALLS.sudden : CALLS.any, id);
+      if (eliminates(pre) && loser) farewells[key] = { loserId: loser.id, text: pick1(FAREWELLS), t: Date.now() }; else delete farewells[key];
+    }
     setWinner(key, id);
     const mt = findMatch(key);
     if (!mt || !mt.winner) return;
@@ -1065,7 +1121,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   function setMethod(k) {
     if (!openKey || !S.winners[openKey]) return;
     pushUndo('Changed how Battle ' + (findMatch(openKey) || {}).num + ' was won');
-    if (S.methods[openKey] === k) delete S.methods[openKey]; else S.methods[openKey] = k;
+    if (S.methods[openKey] === k) delete S.methods[openKey]; else { S.methods[openKey] = k; setCall(openKey, CALLS[k] || CALLS.any, S.winners[openKey]); }
     save(); renderBracket(); renderOverlay();
   }
   function pick(id) {
@@ -1084,6 +1140,8 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     if (f && !f.disabled) return pick(f.dataset.pick);
     const ch = ev.target.closest('[data-method]');
     if (ch) return setMethod(ch.dataset.method);
+    const sx = ev.target.closest('[data-sfx]');
+    if (sx) return playSfx(sx.dataset.sfx);
     const rs = ev.target.closest('[data-reason]');
     if (rs) {
       const mt = findMatch(openKey); if (!mt) return;
@@ -1109,6 +1167,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       case 'intro': openIntro(); break;
       case 'timer': timerToggle(); break;
       case 'treset': resetTimer(openKey); updateTimerUI(); break;
+      case 'sudden': suddenDeath(); break;
       case 'adj': if (!T.running) {
         T.done = false; T.started = false;
         T.remaining = Math.min(600, Math.max(30, Math.round(timerLeft() / 30) * 30 + Number(d.dataset.v)));
@@ -1131,7 +1190,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <div class="cs-bot">${esc(fin.winner.bot || 'Unnamed bot')}</div>
       ${fin.winner.students ? `<div class="cs-stu">${esc(fin.winner.students)}</div>` : ''}
       ${(runner || third) ? `<div class="pods">${podium('2nd place', runner)}${podium('3rd place', third)}</div>` : ''}
-      <button class="btn primary" type="button" data-do="closeChamp">Back to bracket</button>
+      <div class="intro-acts"><button class="btn" type="button" data-do="closeChamp">Back to bracket</button><button class="btn primary" type="button" data-do="awards">See the awards ▸</button></div>
     </div>`;
     ov.hidden = false;
     ov.querySelector('[data-do="closeChamp"]').focus();
@@ -1139,6 +1198,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   }
   function closeChampion() { $('#champOverlay').hidden = true; }
   $('#champOverlay').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-do="awards"]')) return openAwards();
     if (ev.target === ev.currentTarget || ev.target.closest('[data-do="closeChamp"]')) closeChampion();
   });
 
@@ -1391,7 +1451,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   document.addEventListener('fullscreenchange', () => { $('#fullscreen').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
 
   $('#backup').addEventListener('click', () => {
-    const data = JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, thirdPlace: S.thirdPlace, timerSecs: S.timerSecs });
+    const data = JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, thirdPlace: S.thirdPlace, timerSecs: S.timerSecs });
     showDialog(`<h3>Save / load tournament</h3>
       <p>The bracket saves automatically in this browser. To move it to another computer, copy this code and paste it into the same box there, then press Load.</p>
       <textarea id="backupText" aria-label="Tournament code">${esc(data)}</textarea>
@@ -1413,6 +1473,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
             S.winners = d.winners && typeof d.winners === 'object' ? d.winners : {};
             S.methods = d.methods && typeof d.methods === 'object' ? d.methods : {};
             S.rematches = d.rematches && typeof d.rematches === 'object' ? d.rematches : {};
+            S.overtime = d.overtime && typeof d.overtime === 'object' ? d.overtime : {};
             if (typeof d.thirdPlace === 'boolean') S.thirdPlace = d.thirdPlace;
             if (d.timerSecs) S.timerSecs = d.timerSecs;
             S.sample = false; save(); closeDialog(); renderRoster(); refresh(); toast('Tournament loaded');
@@ -1431,7 +1492,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   /* ---------- Undo ---------- */
   const undoStack = [];
   function snap() {
-    return JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, thirdPlace: S.thirdPlace });
+    return JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, mystery: S.mystery, thirdPlace: S.thirdPlace });
   }
   function pushUndo(label) {
     undoStack.push({ label, data: snap() });
@@ -1668,7 +1729,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
         rows.map(r => [r.place.label, r.e.bot, r.e.students, r.e.seed, r.w, r.l, r.m.balloon, r.m.pushed, r.m.forfeit, r.m.error, r.re].join('\t'))).join('\n');
     } else {
       const done = allMatches().filter(mt => !mt.isBye && (mt.winner || (S.rematches[mt.key] || []).length));
-      const rows = done.map(mt => ({ mt, w: mt.winner, l: loserOf(mt), how: methodLabel(S.methods[mt.key]), re: (S.rematches[mt.key] || []).map(x => x.reason) }));
+      const rows = done.map(mt => ({ mt, w: mt.winner, l: loserOf(mt), how: [methodLabel(S.methods[mt.key]), S.overtime[mt.key] && mt.winner ? 'sudden death' : ''].filter(Boolean).join(', '), re: (S.rematches[mt.key] || []).map(x => x.reason) }));
       const decided = rows.filter(r => r.w).length;
       intro = `${decided} of ${B.total} battles decided.`;
       table = rows.length ? `<table><thead><tr><th>#</th><th>Round</th><th>Winner</th><th>Defeated</th><th>How</th><th>Rematches</th></tr></thead><tbody>
@@ -1681,15 +1742,243 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <p>${intro} Copy pastes straight into a spreadsheet or gradebook.</p>
       <div class="preview">${table}</div>
       <textarea id="resultsText" class="vh" aria-hidden="true" tabindex="-1">${esc(tsv)}</textarea>
-      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn primary" type="button" data-d="copy">Copy for spreadsheet</button></div>`,
+      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn" type="button" data-d="awards">Show awards</button><button class="btn primary" type="button" data-d="copy">Copy for spreadsheet</button></div>`,
       (a) => {
         if (a === 'close') return closeDialog();
+        if (a === 'awards') return openAwards();
         if (a === 'battles' || a === 'teams') return showResults(a);
         const fallback = () => { const ta = $('#resultsText'); ta.classList.remove('vh'); ta.focus(); ta.select(); toast('Text selected. Press Ctrl+C to copy'); };
         try { navigator.clipboard.writeText(tsv).then(() => toast('Copied'), fallback); } catch (e) { fallback(); }
       }, 'wide');
   }
   $('#results').addEventListener('click', () => showResults('battles'));
+
+  /* ---------- Sound effect board ---------- */
+  let noiseBuf = null;
+  function ac() { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); return audio; }
+  function noise() {
+    const c = ac();
+    if (!noiseBuf) { noiseBuf = c.createBuffer(1, c.sampleRate * 3, c.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const s = c.createBufferSource(); s.buffer = noiseBuf; return s;
+  }
+  function env(g, t, pts) { g.gain.setValueAtTime(0.0001, t); pts.forEach(([dt, v]) => g.gain.linearRampToValueAtTime(v, t + dt)); }
+  const SFX = {
+    airhorn() {
+      const c = ac(), t0 = c.currentTime, out = c.createGain(), lp = c.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 2600; out.gain.value = 0.9; lp.connect(out).connect(c.destination);
+      [[0, .22], [.28, .22], [.56, .9]].forEach(([s, d]) => [415, 466, 554].forEach(f => {
+        const o = c.createOscillator(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.value = f * (1 + (Math.random() - .5) * .006);
+        env(g, t0 + s, [[.02, .045], [d - .03, .045], [d, 0.0001]]); o.connect(g).connect(lp); o.start(t0 + s); o.stop(t0 + s + d + .05);
+      }));
+    },
+    cheer() {
+      const c = ac(), t = c.currentTime;
+      [700, 1300, 2400].forEach((f, i) => {
+        const n = noise(), bp = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+        bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = .8;
+        env(g, t, [[.5, .12 - i * .03], [2, .1 - i * .025], [3, 0.0001]]);
+        lfo.frequency.value = 3 + Math.random() * 4; lg.gain.value = .03; lfo.connect(lg).connect(g.gain);
+        n.connect(bp).connect(g).connect(c.destination); n.start(t); n.stop(t + 3); lfo.start(t); lfo.stop(t + 3);
+      });
+      for (let i = 0; i < 6; i++) { const s = t + .3 + Math.random() * 1.6; tone(900 + Math.random() * 900, s - c.currentTime, .12, .012, 'sine'); }
+    },
+    ooh() {
+      const c = ac(), t = c.currentTime, lp = c.createBiquadFilter(), bp = c.createBiquadFilter(), out = c.createGain();
+      lp.type = 'lowpass'; lp.frequency.value = 900; bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = 1.2;
+      env(out, t, [[.35, .9], [1.3, .7], [1.9, 0.0001]]); lp.connect(bp).connect(out).connect(c.destination);
+      for (let i = 0; i < 9; i++) {
+        const o = c.createOscillator(), g = c.createGain(), f = 150 + Math.random() * 130;
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 1.12, t + .5); o.frequency.linearRampToValueAtTime(f * .9, t + 1.9);
+        g.gain.value = .035; o.connect(g).connect(lp); o.start(t + Math.random() * .1); o.stop(t + 2);
+      }
+    },
+    drumroll() {
+      const c = ac(), t = c.currentTime;
+      for (let i = 0; i < 60; i++) {
+        const s = t + i * .032, n = noise(), bp = c.createBiquadFilter(), g = c.createGain(), v = .03 + .09 * (i / 60);
+        bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = .7;
+        env(g, s, [[.003, v], [.03, 0.0001]]); n.connect(bp).connect(g).connect(c.destination); n.start(s, Math.random() * 2); n.stop(s + .04);
+      }
+      const s = t + 1.95, n = noise(), hp = c.createBiquadFilter(), g = c.createGain();
+      hp.type = 'highpass'; hp.frequency.value = 3000; env(g, s, [[.005, .22], [1.4, 0.0001]]);
+      n.connect(hp).connect(g).connect(c.destination); n.start(s); n.stop(s + 1.5);
+      tone(65, s - c.currentTime, .5, .12, 'sine');
+    },
+    trombone() {
+      const c = ac(), t = c.currentTime, lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.connect(c.destination);
+      [[293.66, 0, .42], [277.18, .45, .42], [261.63, .9, .42], [246.94, 1.35, 1.5]].forEach(([f, s, d], i) => {
+        const o = c.createOscillator(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.value = f;
+        if (i === 3) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 5.5; lg.gain.value = 7; l.connect(lg).connect(o.frequency); l.start(t + s + .25); l.stop(t + s + d); }
+        env(g, t + s, [[.04, .09], [d - .1, .08], [d, 0.0001]]); o.connect(g).connect(lp); o.start(t + s); o.stop(t + s + d + .05);
+      });
+    },
+    bell() {
+      const c = ac(), t = c.currentTime;
+      [0, .32, .64].forEach(s => [[830, .12], [2290, .05], [4470, .025], [1660, .04]].forEach(([f, v]) => {
+        const o = c.createOscillator(), g = c.createGain(); o.type = 'sine'; o.frequency.value = f;
+        env(g, t + s, [[.004, v], [1.4, 0.0001]]); o.connect(g).connect(c.destination); o.start(t + s); o.stop(t + s + 1.5);
+      }));
+    }
+  };
+  const SFX_LIST = [['airhorn', 'Air horn', '5'], ['cheer', 'Crowd cheer', '6'], ['ooh', 'Ooooh', '7'], ['drumroll', 'Drumroll', '8'], ['trombone', 'Sad trombone', '9'], ['bell', 'Fight bell', '0']];
+  function playSfx(name) {
+    if (S.sound === false) { toast('Sound is off. Turn it on in the toolbar'); return; }
+    try { SFX[name](); } catch (e) {}
+  }
+  function sfxBoardHTML() {
+    return `<div class="sfx-board" aria-label="Sound effects"><span class="sfx-label">Sound board</span>${SFX_LIST.map(([k, label, key]) => `<button type="button" class="sfx" data-sfx="${k}">${label}<kbd>${key}</kbd></button>`).join('')}</div>`;
+  }
+
+  /* ---------- Announcer + farewells ---------- */
+  const CALLS = {
+    any: ['AND THE CROWD GOES MILD!', 'WHAT A BATTLE!', 'I cannot believe what I just saw!', "That's going straight into the highlight reel!", 'Somebody call its grandma!', 'Absolutely bonkers performance!', 'We have a WINNER, folks!', 'I need to sit down after that one.', 'History has been made! Probably!', 'The pigeons on the roof are on their feet!', "I'm going to tell my kids about this one!", 'Put that one in a museum!'],
+    balloon: ['POP GOES THE BALLOON!', 'Somebody call the balloon doctor!', 'That balloon never saw it coming!', 'A moment of silence for that balloon.', 'That pop was heard three towns over!', "Balloon status: no longer a balloon!"],
+    pushed: ['AND STAY OUT!', 'Shoved right out of the arena! Rude, but effective!', "That's a one-way ticket out of here!", 'Evicted! Pack your bags!', 'Pushed out like last week\'s leftovers!'],
+    forfeit: ['A win is a win, folks!', 'Victory by... paperwork!', 'The quietest victory in tournament history!', "They didn't even have to break a sweat!"],
+    error: ['Oh no, it drove itself right out!', 'Wrong way! WRONG WAY!', 'A self-eviction! Bold strategy!', 'It left to go get a snack, apparently!', "That's what we call an unforced error, folks!"],
+    sudden: ['SUDDEN DEATH DRAMA!', 'Ice in their veins! ICE!', 'Down to the wire and they DELIVER!', 'My heart cannot take overtime like that!']
+  };
+  const FAREWELLS = [
+    '{bot} will now return to its life as a professional napper.',
+    '{bot} has been called away to judge a sandcastle contest.',
+    '{bot} is off to finally learn the kazoo.',
+    '{bot} will be spending more time with its pet rock.',
+    '{bot} has accepted a job counting clouds.',
+    '{bot} is retiring to a quiet farm with three goats.',
+    '{bot} has a very important pigeon meeting to get to.',
+    '{bot} says it was "just here for the snacks anyway."',
+    '{bot} will be back. It left its lucky sock in the arena.',
+    '{bot} is going home to think about what it did.',
+    '{bot} is starting a podcast about this battle. Episode one: "Why."',
+    '{bot} has bravely decided to become a doorstop for a while.',
+    '{bot} is off to find the other half of its favorite sandwich.',
+    '{bot} departs with its head held high. And its balloon, hopefully.',
+    '{bot} has been offered a role as a very confident paperweight.',
+    '{bot} will be writing a strongly worded letter to the arena.'
+  ];
+  const pick1 = (a) => a[Math.floor(Math.random() * a.length)];
+  const calls = {}, farewells = {};
+  function setCall(key, pool, winnerId) { calls[key] = { text: pick1(pool), t: Date.now(), winnerId }; }
+  function callHTML(mt) {
+    const c = calls[mt.key];
+    if (!c || !mt.winner || c.winnerId !== mt.winner.id) return '';
+    return `<div class="call ${Date.now() - c.t < 1200 ? 'anim' : ''}"><span class="call-label">Announcer</span><span class="call-text">${esc(c.text)}</span></div>`;
+  }
+  function farewellHTML(mt, p) {
+    const f = farewells[mt.key];
+    if (!f || f.loserId !== p.id || !mt.winner || mt.winner.id === p.id) return '';
+    return `<span class="farewell ${Date.now() - f.t < 1500 ? 'anim' : ''}"><span class="fw-label">Farewell</span>${esc(f.text.replace(/\{bot\}/g, p.bot || 'This bot'))}</span>`;
+  }
+  function eliminates(mt) {
+    if (!mt.third && mt.r === B.R - 1) return false;               // final loser gets 2nd place
+    if (!mt.third && B.third && mt.r === B.R - 2) return false;    // semifinal loser plays for 3rd
+    return true;
+  }
+
+  /* ---------- Sudden death ---------- */
+  async function suddenDeath() {
+    if (cdRunning || !openKey) return;
+    const key = openKey;
+    cdRunning = true;
+    const ov = $('#countdown');
+    ov.hidden = false;
+    ov.innerHTML = '<span class="cd sd">Sudden<br>death</span>';
+    if (S.sound !== false) try { SFX.drumroll(); } catch (e) {}
+    await wait(2000);
+    ov.innerHTML = '<span class="cd sd small">30 seconds!</span>';
+    await wait(1100);
+    ov.hidden = true; ov.innerHTML = '';
+    cdRunning = false;
+    if (openKey !== key) return;
+    S.overtime[key] = true; save();
+    clearInterval(T.iv);
+    Object.assign(T, { key, remaining: 30, done: false, running: false, started: true, sudden: true, lastSec: null });
+    startTimer();
+  }
+
+  /* ---------- Superlative awards ---------- */
+  const MYSTERY = ['Most Likely to Befriend a Goose', 'Official Ambassador to the Pigeons', 'Future Kazoo Champion', 'Most Suspicious of Raisins', 'Best Vibes in the Building', 'Most Likely to Get Lost in a Corn Maze', 'Honorary Lawn Gnome', 'Most Likely to Own 14 Tiny Hats', 'Best Dramatic Entrance', 'Most Likely to Fear Spoons'];
+  function computeAwards() {
+    if (!B) return [];
+    const rows = teamStats();
+    const ot = {}, upsets = [];
+    allMatches().forEach(mt => {
+      if (mt.isBye || !mt.winner) return;
+      const l = loserOf(mt);
+      if (S.overtime[mt.key]) ot[mt.winner.id] = (ot[mt.winner.id] || 0) + 1;
+      const diff = mt.winner.seed - l.seed;
+      if (diff > 0) upsets.push({ w: mt.winner, l, diff });
+    });
+    const names = (list) => list.map(r => r.e || r);
+    const top = (val) => { const max = Math.max(0, ...rows.map(val)); return max > 0 ? { max, who: rows.filter(r => val(r) === max) } : null; };
+    const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+    const awards = [];
+    let t;
+    if ((t = top(r => r.m.balloon))) awards.push({ title: 'Balloon Assassin', blurb: 'Most wins by balloon pop', who: names(t.who), stat: plural(t.max, 'balloon popped', 'balloons popped') });
+    if ((t = top(r => r.m.pushed))) awards.push({ title: 'The Bulldozer', blurb: 'Most opponents pushed out of the arena', who: names(t.who), stat: plural(t.max, 'push-out', 'push-outs') });
+    if (upsets.length) {
+      const max = Math.max(...upsets.map(u => u.diff)), best = upsets.filter(u => u.diff === max);
+      const seen = new Set(), who = best.filter(u => !seen.has(u.w.id) && seen.add(u.w.id));
+      awards.push({ title: 'Giant Slayer', blurb: 'Biggest upset of the tournament', who: who.map(u => u.w), stat: who.map(u => `Seed #${u.w.seed} beat Seed #${u.l.seed}`).join(' · ') });
+    }
+    if ((t = top(r => ot[r.e.id] || 0))) awards.push({ title: 'Ice in Their Veins', blurb: 'Won a battle in sudden death', who: names(t.who), stat: plural(t.max, 'sudden-death win', 'sudden-death wins') });
+    if ((t = top(r => r.re))) awards.push({ title: 'Most Dramatic', blurb: 'Battles so wild they needed a rematch', who: names(t.who), stat: plural(t.max, 'rematch', 'rematches') });
+    if ((t = top(r => r.m.forfeit + r.m.error))) awards.push({ title: 'Luckiest Bot Alive', blurb: 'Won when the other side forfeited or drove itself out', who: names(t.who), stat: plural(t.max, 'lucky win', 'lucky wins') });
+    // Mystery award: goes to a random team that has no other award yet, and stays the same once given.
+    const awarded = new Set(awards.flatMap(a => a.who.map(e => e.id)));
+    const valid = S.mystery && S.entries.some(e => e.id === S.mystery.id);
+    if (!valid) {
+      const pool = S.entries.filter(e => !awarded.has(e.id));
+      const e = pick1(pool.length ? pool : S.entries);
+      if (e) { S.mystery = { id: e.id, title: pick1(MYSTERY) }; save(); }
+    }
+    const me = S.mystery && S.entries.find(e => e.id === S.mystery.id);
+    if (me) awards.push({ title: S.mystery.title, blurb: 'The judges’ mystery award', who: [me], stat: 'No explanation will be given' });
+    return awards;
+  }
+  let aw = null;
+  function openAwards() {
+    if (!B) return toast('Add at least two bots first');
+    closeDialog(); closeChampion();
+    aw = { list: computeAwards(), i: -1 };
+    renderAwards();
+  }
+  function renderAwards() {
+    const ov = $('#awardsOverlay');
+    if (!aw) { ov.hidden = true; return; }
+    const { list, i } = aw;
+    const done = !!B.rounds[B.R - 1][0].winner;
+    let html;
+    if (i < 0) {
+      html = `<div class="aw-card intro-card"><div class="aw-kicker">${done ? 'And now' : 'Standings so far'}</div><div class="aw-title">The Tournament Awards</div>
+        <div class="aw-blurb">${list.length} award${list.length === 1 ? '' : 's'} to hand out${done ? '' : '. The tournament is not over yet, so these could change'}.</div></div>
+        <div class="intro-acts"><button class="btn" type="button" data-a="close">Back to bracket</button><button class="btn primary big" type="button" data-a="next">First award ▸</button></div>`;
+    } else if (i < list.length) {
+      const a = list[i];
+      html = `<div class="aw-card"><div class="aw-kicker">Award ${i + 1} of ${list.length}</div><div class="aw-title">${esc(a.title)}</div><div class="aw-blurb">${esc(a.blurb)}</div>
+        <div class="aw-winner">${a.who.map(e => `<div class="aw-bot">${esc(e.bot || 'Unnamed bot')}</div>${e.students ? `<div class="aw-stu">${esc(e.students)}</div>` : ''}`).join('')}</div>
+        <div class="aw-stat">${esc(a.stat)}</div></div>
+        <div class="intro-acts"><button class="btn" type="button" data-a="close">Back to bracket</button>${i > 0 ? '<button class="btn" type="button" data-a="back">◂ Back</button>' : ''}<button class="btn primary big" type="button" data-a="next">${i === list.length - 1 ? 'See all awards ▸' : 'Next award ▸'}</button></div>`;
+    } else {
+      html = `<div class="aw-kicker">Tournament awards</div>
+        <div class="aw-grid">${list.map(a => `<div class="aw-mini"><div class="aw-mini-title">${esc(a.title)}</div><div class="aw-mini-bot">${a.who.map(e => esc(e.bot || 'Unnamed bot')).join(' &amp; ')}</div><div class="aw-mini-stat">${esc(a.stat)}</div></div>`).join('')}</div>
+        <div class="intro-acts"><button class="btn" type="button" data-a="back">◂ Back</button><button class="btn primary" type="button" data-a="close">Back to bracket</button></div>`;
+    }
+    ov.innerHTML = `<div class="awards" role="dialog" aria-modal="true" aria-label="Tournament awards">${html}</div>`;
+    ov.hidden = false;
+    if (i >= 0 && i < list.length) {
+      if (S.sound !== false) try { SFX.drumroll(); } catch (e) {}
+      setTimeout(() => { if (aw && aw.i === i) { brass(523.25, 0, .25, .05); brass(783.99, .2, .6, .05); const r = ov.querySelector('.aw-winner'); if (r) { const b = r.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2, 90); } } }, 2000);
+    }
+    const f = ov.querySelector('[data-a="next"]') || ov.querySelector('[data-a="close"]'); if (f) f.focus({ preventScroll: true });
+  }
+  function awardsAction(a) {
+    if (!aw) return;
+    if (a === 'next') { aw.i = Math.min(aw.list.length, aw.i + 1); renderAwards(); }
+    else if (a === 'back') { aw.i = Math.max(-1, aw.i - 1); renderAwards(); }
+    else if (a === 'close') { aw = null; renderAwards(); }
+  }
+  $('#awardsOverlay').addEventListener('click', (ev) => { const b = ev.target.closest('[data-a]'); if (b) awardsAction(b.dataset.a); });
 
   /* ---------- Keyboard shortcuts ---------- */
   const typing = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -1700,6 +1989,12 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     if (cdRunning) { ev.preventDefault(); return; }
     if ((ev.ctrlKey || ev.metaKey) && k.toLowerCase() === 'z') { ev.preventDefault(); undo(); return; }
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (aw) {
+      if (k === ' ' || k === 'Enter' || k === 'ArrowRight') { ev.preventDefault(); awardsAction(aw.i >= aw.list.length ? 'close' : 'next'); }
+      else if (k === 'ArrowLeft') awardsAction('back');
+      else if (k === 'Escape') awardsAction('close');
+      return;
+    }
     if (intro) {
       if (k === ' ' || k === 'Enter' || k === 'ArrowRight') { ev.preventDefault(); introAction(intro.stage === 2 ? 'fight' : 'next'); }
       else if (k === 'ArrowLeft') introAction('back');
@@ -1718,13 +2013,14 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       else if (lk === 'i') openIntro();
       else if (lk === 'u') undo();
       else if (/^[1-4]$/.test(k) && mt && mt.winner) setMethod(METHODS[Number(k) - 1][0]);
+      else if (/^[5-90]$/.test(k)) playSfx(SFX_LIST.find(x => x[2] === k)[0]);
       return;
     }
     if (lk === 'n') $('#nextBattle').click();
     else if (lk === 'u') undo();
   });
   // Stop Space from also "clicking" whichever button has focus in the battle screen
-  document.addEventListener('keyup', (ev) => { if (ev.key === ' ' && (openKey || intro) && !typing(ev.target) && $('#dialog').hidden) ev.preventDefault(); });
+  document.addEventListener('keyup', (ev) => { if (ev.key === ' ' && (openKey || intro || aw) && !typing(ev.target) && $('#dialog').hidden) ev.preventDefault(); });
 
   window.addEventListener('resize', () => requestAnimationFrame(drawWires));
   window.addEventListener('resize', () => { if (fxRunning) sizeFx(); });

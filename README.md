@@ -13,6 +13,9 @@ Open `index.html` in any modern browser. It's one self-contained file and needs 
 - **Walk-out intros** with random strange "fun facts," a 3-2-1 FIGHT! countdown, and a battle timer.
 - **How they won:** balloon pop, pushed out by opponent, forfeit, or left arena due to user error.
 - **Rematch / no contest** logging, a 3rd-place battle, an on-deck panel, undo, and keyboard shortcuts.
+- **Announcer calls** on every win, **farewell cards** for eliminated bots, and a **sound board** (air horn, crowd cheer, ooooh, drumroll, sad trombone, fight bell).
+- **Sudden death:** a 30-second overtime when the timer runs out.
+- **Superlative awards** at the end (Balloon Assassin, The Bulldozer, Giant Slayer, Ice in Their Veins, Most Dramatic, Luckiest Bot Alive, plus a mystery award).
 - **Results and team stats** that copy straight into a spreadsheet or gradebook.
 - **Saving:** progress saves automatically in the browser. Use **Save / load** to move a tournament to another computer.
 
@@ -27,4 +30,5 @@ Open `index.html` in any modern browser. It's one self-contained file and needs 
 | I | Walk-out intros |
 | N | Next battle |
 | U or Ctrl+Z | Undo |
+| 5–0 | Sound board effects |
 | Esc | Close |
