@@ -1,0 +1,1743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Battle Bot Bracket</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: arena control room. Roster rail on the left, bracket floor on the right,
+   battles open as a full-screen "fight card" with red and blue corners. Single dark look for projection. */
+:root {
+  --bg: #12161b;          /* gunmetal floor */
+  --panel: #1b2129;       /* steel plate */
+  --panel-2: #232b35;
+  --line: #333e4a;
+  --fg: #e9edf1;
+  --muted: #8d99a6;
+  --hazard: #ffb81c;      /* safety amber: winners + primary actions */
+  --hazard-ink: #1a1405;
+  --win-bg: rgba(255,184,28,.12);
+  --red: #ef4b45;         /* red corner */
+  --blue: #3d8bff;        /* blue corner */
+  --danger: #ff6b5e;
+  --font-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Menlo, monospace;
+  --scale: 1;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+}
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--hazard); outline-offset: 2px; }
+
+.app { display: flex; flex-direction: column; min-height: 100%; }
+
+/* Header */
+.topbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px;
+  padding-block: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line);
+  position: relative;
+}
+.topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 6px;
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 12px, var(--bg) 12px 24px);
+  opacity: .9;
+}
+.brand { display: flex; flex-direction: column; min-width: 0; margin-right: auto; }
+.brand h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 800; text-transform: uppercase;
+  font-size: clamp(1.6rem, 3vw, 2.3rem); letter-spacing: .02em; line-height: 1; text-wrap: balance;
+}
+.brand .meta { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+  padding: 8px 12px; font-weight: 600; font-size: .95rem; line-height: 1.1; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--hazard); color: var(--hazard-ink); border-color: var(--hazard); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+.btn[disabled] { opacity: .4; cursor: not-allowed; }
+.seg { display: inline-flex; }
+.seg .btn { border-radius: 0; }
+.seg .btn:first-child { border-radius: 6px 0 0 6px; }
+.seg .btn:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+
+/* Main */
+.main { flex: 1; display: grid; grid-template-columns: 380px minmax(0, 1fr); min-height: 0; padding-top: 7px; }
+.main.roster-hidden { grid-template-columns: minmax(0, 1fr); }
+.main.roster-hidden .roster { display: none; }
+
+/* Roster */
+.roster {
+  border-right: 1px solid var(--line);
+  padding-block: 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: 16px;
+  display: flex; flex-direction: column; gap: 14px; min-width: 0;
+  overflow-y: auto;
+}
+.roster h2, .floor h2 {
+  margin: 0; font-family: var(--font-display); font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; font-size: 1.05rem; color: var(--muted);
+}
+.roster-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.notice {
+  background: var(--win-bg); border: 1px dashed var(--hazard); border-radius: 6px;
+  padding: 10px 12px; font-size: .9rem;
+}
+.notice strong { color: var(--hazard); }
+.entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.entry {
+  display: grid; grid-template-columns: 2.2em minmax(0, 1fr) auto; gap: 8px; align-items: start;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px;
+}
+.entry .num {
+  font-family: var(--font-mono); font-weight: 700; color: var(--muted); font-size: .85rem;
+  padding-top: 8px; text-align: center; font-variant-numeric: tabular-nums;
+}
+.fields { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.fields input, .add input, textarea {
+  width: 100%; box-sizing: border-box; background: var(--bg); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; font: inherit;
+}
+.fields input.bot-in { font-family: var(--font-display); font-weight: 700; font-size: 1.1rem; letter-spacing: .01em; }
+.fields input.stu-in { font-size: .9rem; color: var(--fg); }
+.fields input:focus, .add input:focus, textarea:focus { border-color: var(--hazard); outline: none; }
+.row-tools { display: flex; flex-direction: column; gap: 2px; }
+.icon-btn {
+  width: 30px; height: 26px; display: grid; place-items: center; border-radius: 4px;
+  background: transparent; border: 1px solid transparent; color: var(--muted); padding: 0;
+}
+.icon-btn:hover { border-color: var(--line); color: var(--fg); }
+.icon-btn.del:hover { color: var(--danger); }
+.icon-btn[disabled] { opacity: .25; cursor: default; }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.add { display: flex; flex-direction: column; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.add label { font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.add .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.add .row input { flex: 1 1 140px; min-width: 0; }
+details.bulk summary { cursor: pointer; color: var(--muted); font-size: .9rem; font-weight: 600; }
+details.bulk[open] summary { margin-bottom: 8px; }
+details.bulk textarea { min-height: 120px; font-size: .9rem; resize: vertical; }
+details.bulk p { margin: 0 0 6px; font-size: .85rem; color: var(--muted); }
+.import { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.import label.btn { text-transform: none; letter-spacing: 0; font-size: .95rem; color: var(--fg); }
+.import .hint { flex: 1 1 200px; }
+.vh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
+.import:focus-within label.btn { outline: 3px solid var(--hazard); outline-offset: 2px; }
+.preview { max-height: 45vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.preview table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.preview th, .preview td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.preview th { position: sticky; top: 0; background: var(--panel-2); font-size: .75rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.preview td:first-child { font-family: var(--font-display); font-weight: 700; font-size: 1.05rem; }
+.preview td:last-child { color: var(--muted); }
+.roster-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hint { font-size: .85rem; color: var(--muted); margin: 0; }
+
+/* Bracket floor */
+.floor { min-width: 0; display: flex; flex-direction: column; padding-block: 20px 24px; }
+.floor-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  margin-bottom: 12px;
+}
+.main:not(.roster-hidden) .floor-head { padding-left: 20px; }
+.bracket-scroll {
+  overflow: auto; flex: 1; min-height: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.main:not(.roster-hidden) .bracket-scroll { padding-left: 20px; }
+.bracket {
+  position: relative; display: flex; gap: 3.2em; width: max-content;
+  font-size: calc(15px * var(--scale)); padding-bottom: 16px;
+}
+.wires { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.round { display: flex; flex-direction: column; width: 15.5em; position: relative; z-index: 1; }
+.round-title {
+  font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+  font-size: .9em; color: var(--muted); margin-bottom: .8em; height: 1.4em;
+  display: flex; justify-content: space-between; gap: 8px;
+}
+.round-title span:last-child { font-family: var(--font-mono); font-weight: 500; font-size: .85em; letter-spacing: 0; }
+.round-body { flex: 1; display: flex; flex-direction: column; justify-content: space-around; gap: .9em; }
+
+.match {
+  display: block; width: 100%; text-align: left; padding: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 7px; overflow: hidden;
+  transition: border-color .15s, transform .15s, box-shadow .15s;
+}
+button.match:hover { border-color: var(--hazard); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.match.active { border-color: var(--hazard); box-shadow: 0 0 0 2px var(--hazard); }
+.match.ready { border-color: #5a6675; }
+.mhead {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: .3em .65em; background: var(--panel-2);
+  font-size: .72em; text-transform: uppercase; letter-spacing: .09em; font-weight: 600; color: var(--muted);
+}
+.status { font-family: var(--font-mono); letter-spacing: 0; text-transform: none; }
+.match.ready .status { color: var(--hazard); }
+.slot {
+  display: grid; grid-template-columns: 1.9em minmax(0, 1fr); align-items: center; gap: .2em;
+  padding: .4em .65em; min-height: 2.75em; box-sizing: border-box;
+}
+.slot + .slot { border-top: 1px solid var(--line); }
+.slot .seed { font-family: var(--font-mono); font-size: .75em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.slot .who { min-width: 0; }
+.slot .bot {
+  display: block; font-family: var(--font-display); font-weight: 700; font-size: 1.12em; line-height: 1.1;
+  overflow-wrap: anywhere; letter-spacing: .01em;
+}
+.slot .stu { display: block; font-size: .78em; color: var(--muted); line-height: 1.25; overflow-wrap: anywhere; }
+.slot.win { background: var(--win-bg); box-shadow: inset 3px 0 0 var(--hazard); }
+.slot.win .bot { color: var(--hazard); }
+.slot.lose { opacity: .42; }
+.slot.lose .bot { text-decoration: line-through; text-decoration-thickness: 2px; }
+.slot.tbd .bot, .slot.byeslot .bot { color: var(--muted); font-weight: 500; font-style: italic; }
+.match.bye { opacity: .55; border-style: dashed; }
+
+.champ { width: 15.5em; }
+.champ-card {
+  border: 2px solid var(--hazard); border-radius: 10px; padding: 1em; text-align: center;
+  background: linear-gradient(180deg, var(--win-bg), transparent);
+}
+.champ-card.empty { border-style: dashed; border-color: var(--line); background: none; }
+.champ-card .label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .16em; font-size: .8em; color: var(--hazard); font-weight: 700; }
+.champ-card.empty .label { color: var(--muted); }
+.champ-card .bot { font-family: var(--font-display); font-weight: 800; font-size: 1.7em; line-height: 1.05; margin-top: .25em; overflow-wrap: anywhere; text-transform: uppercase; }
+.champ-card .stu { color: var(--muted); font-size: .85em; margin-top: .3em; }
+.champ-card svg { width: 2.4em; height: 2.4em; color: var(--hazard); }
+.champ-card.empty svg { color: var(--line); }
+
+.empty-floor {
+  margin: 0 20px; padding: 40px 20px; text-align: center; color: var(--muted);
+  border: 2px dashed var(--line); border-radius: 10px;
+}
+
+/* Battle overlay */
+.overlay {
+  position: fixed; inset: 0; z-index: 50; background: rgba(6,8,11,.86);
+  display: grid; place-items: center; overflow-y: auto;
+  padding-top: max(16px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  animation: fade .18s ease-out;
+}
+@keyframes fade { from { opacity: 0; } }
+.battle {
+  width: min(1280px, 100%); background: var(--bg); border: 1px solid var(--line); border-radius: 14px;
+  padding: clamp(16px, 3vw, 36px); box-sizing: border-box; display: flex; flex-direction: column; gap: clamp(14px, 2.5vw, 28px);
+  animation: zoomIn .22s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes zoomIn { from { transform: scale(.88); opacity: .4; } }
+.battle-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.battle-top .round-label {
+  font-family: var(--font-display); text-transform: uppercase; font-weight: 800;
+  font-size: clamp(1.5rem, 3.4vw, 2.8rem); letter-spacing: .04em; line-height: 1;
+}
+.battle-top .round-label small { display: block; font-size: .42em; color: var(--muted); letter-spacing: .14em; font-weight: 700; margin-top: 6px; }
+.ring { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: clamp(12px, 2vw, 28px); align-items: stretch; }
+.fighter {
+  position: relative; display: flex; flex-direction: column; justify-content: center; gap: .4em;
+  min-height: clamp(220px, 38vh, 440px); padding: clamp(16px, 3vw, 40px); text-align: center;
+  background: var(--panel); border: 4px solid var(--corner); border-radius: 14px;
+  transition: transform .15s, opacity .2s, border-color .2s, box-shadow .2s;
+}
+.fighter.red { --corner: var(--red); }
+.fighter.blue { --corner: var(--blue); }
+button.fighter:hover { transform: translateY(-3px); box-shadow: 0 0 0 4px color-mix(in srgb, var(--corner) 35%, transparent); }
+.fighter .corner { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .2em; font-weight: 700; color: var(--corner); font-size: clamp(.9rem, 1.4vw, 1.2rem); }
+.fighter .fbot { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(2.2rem, 6vw, 5.6rem); line-height: .95; overflow-wrap: anywhere; text-wrap: balance; }
+.fighter .fstu { font-size: clamp(1.05rem, 2vw, 1.7rem); color: var(--muted); overflow-wrap: anywhere; }
+.fighter .pick { margin-top: .8em; font-size: clamp(.85rem, 1.2vw, 1.05rem); color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+.fighter.tbd { border-style: dashed; border-color: var(--line); }
+.fighter.tbd .fbot { color: var(--muted); font-size: clamp(1.4rem, 3vw, 2.4rem); font-style: italic; text-transform: none; font-weight: 600; }
+.fighter.win { border-color: var(--hazard); box-shadow: 0 0 0 6px var(--win-bg), 0 0 60px rgba(255,184,28,.25); }
+.fighter.win .fbot { color: var(--hazard); }
+.fighter.lose { opacity: .3; }
+.stamp {
+  position: absolute; top: 14px; right: 14px; transform: rotate(6deg);
+  background: var(--hazard); color: var(--hazard-ink); font-family: var(--font-display); font-weight: 800;
+  text-transform: uppercase; letter-spacing: .12em; padding: 4px 12px; border-radius: 4px; font-size: clamp(1rem, 1.8vw, 1.5rem);
+  animation: stamp .35s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes stamp { from { transform: rotate(6deg) scale(2.2); opacity: 0; } }
+.vs { display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: clamp(2rem, 5vw, 4.5rem); color: var(--hazard); font-style: italic; }
+.battle-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.battle-foot .group { display: flex; gap: 8px; flex-wrap: wrap; }
+.battle-foot .btn { font-size: 1.05rem; padding: 10px 16px; }
+.confirm-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+  background: var(--panel-2); border: 1px solid var(--hazard); border-radius: 8px; padding: 12px 14px; font-size: 1.05rem;
+}
+.champ-banner {
+  text-align: center; font-family: var(--font-display); text-transform: uppercase; font-weight: 800;
+  font-size: clamp(1.4rem, 3.5vw, 2.6rem); color: var(--hazard-ink); background: var(--hazard); border-radius: 8px; padding: 10px;
+  letter-spacing: .05em;
+}
+
+/* Small dialogs */
+.sheet {
+  width: min(560px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;
+}
+.sheet h3 { margin: 0; font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: 1.5rem; letter-spacing: .03em; }
+.sheet p { margin: 0; }
+.sheet textarea { min-height: 160px; font-family: var(--font-mono); font-size: .8rem; resize: vertical; }
+.sheet .acts { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+/* 3rd place + podium */
+.podium { display: flex; flex-direction: column; gap: 1.4em; }
+button.champ-card { font: inherit; color: inherit; width: 100%; display: block; cursor: pointer; }
+button.champ-card:disabled { cursor: default; }
+button.champ-card:not(:disabled):hover { box-shadow: 0 0 24px rgba(255,184,28,.3); }
+.match.third { border-color: #8a6a3a; }
+.match.third .mhead { color: #d7a865; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: .92rem; cursor: pointer; }
+.toggle input { width: 18px; height: 18px; accent-color: var(--hazard); }
+.match.decided .status { color: var(--hazard); }
+
+/* Timer */
+.timer { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; }
+.timer .digits {
+  font-family: var(--font-mono); font-weight: 700; font-variant-numeric: tabular-nums;
+  font-size: clamp(2rem, 4.5vw, 3.6rem); line-height: 1; min-width: 4ch; text-align: center; color: var(--fg);
+}
+.timer.running .digits { color: var(--hazard); }
+.timer.warn { border-color: var(--red); }
+.timer.warn .digits { color: var(--red); animation: pulse .5s ease-in-out infinite alternate; }
+.timer.done { border-color: var(--red); background: color-mix(in srgb, var(--red) 18%, var(--panel)); }
+.timer.done .digits { color: var(--red); animation: pulse .3s steps(2) infinite; }
+@keyframes pulse { to { opacity: .45; } }
+
+/* How they won */
+.method { display: flex; align-items: center; justify-content: center; gap: 10px 14px; flex-wrap: wrap; font-size: clamp(1rem, 1.6vw, 1.25rem); }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.chip { background: var(--panel-2); border: 2px solid var(--line); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: inherit; }
+.chip:hover { border-color: var(--muted); }
+.chip.on { background: var(--hazard); color: var(--hazard-ink); border-color: var(--hazard); }
+
+/* Winner fanfare */
+.fighter.celebrate { animation: champPop .6s cubic-bezier(.2,1.5,.4,1); }
+@keyframes champPop { 0% { transform: scale(.94); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+.fighter.celebrate::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 14px; pointer-events: none;
+  box-shadow: 0 0 0 0 var(--hazard); animation: ringOut .9s ease-out forwards;
+}
+@keyframes ringOut { to { box-shadow: 0 0 0 40px rgba(255,184,28,0); } }
+#fx { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 70; }
+
+/* Champion screen */
+#champOverlay { z-index: 58; background: rgba(6,8,11,.94); }
+.champion-screen { width: min(1100px, 100%); text-align: center; display: flex; flex-direction: column; align-items: center; gap: clamp(8px, 1.6vw, 16px); animation: zoomIn .4s cubic-bezier(.2,1.3,.4,1); }
+.big-trophy svg { width: clamp(90px, 14vw, 170px); height: auto; color: var(--hazard); filter: drop-shadow(0 0 30px rgba(255,184,28,.5)); }
+.cs-label { font-family: var(--font-display); text-transform: uppercase; letter-spacing: .3em; font-weight: 700; color: var(--hazard); font-size: clamp(1rem, 2.2vw, 1.6rem); }
+.cs-bot { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(3rem, 11vw, 9rem); line-height: .9; overflow-wrap: anywhere; text-wrap: balance; }
+.cs-stu { font-size: clamp(1.2rem, 2.6vw, 2.1rem); color: var(--muted); }
+.pods { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+.pod { display: flex; flex-direction: column; gap: 2px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 22px; min-width: 0; }
+.pod-label { font-size: .8rem; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); font-weight: 600; }
+.pod-bot { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.3rem, 2.4vw, 1.9rem); overflow-wrap: anywhere; }
+.pod-stu { font-size: .95rem; color: var(--muted); }
+.champion-screen .btn { margin-top: 14px; font-size: 1.1rem; padding: 12px 20px; }
+.preview small { color: var(--muted); }
+
+/* On deck */
+.ondeck {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 14px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.main:not(.roster-hidden) .ondeck { padding-left: 20px; }
+.deck {
+  display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+}
+.deck:hover { border-color: var(--hazard); }
+.deck.now { border: 2px solid var(--hazard); background: linear-gradient(90deg, var(--win-bg), var(--panel) 70%); }
+.deck-label { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .12em; font-size: .8rem; color: var(--muted); }
+.deck.now .deck-label { color: var(--hazard); }
+.deck-num { font-size: .78rem; color: var(--muted); }
+.deck-vs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; line-height: 1.15; min-width: 0; }
+.deck-vs span { overflow-wrap: anywhere; }
+.deck-vs em { font-style: italic; color: var(--hazard); font-size: .85em; }
+.deck.waiting .deck-vs { color: var(--muted); font-weight: 600; }
+@media (max-width: 900px) { .main:not(.roster-hidden) .ondeck { padding-left: max(16px, env(safe-area-inset-left, 0px)); } }
+
+/* Keyboard hints + badges */
+.keys { width: 100%; text-align: center; color: var(--muted); font-size: .85rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 6px; align-items: center; }
+kbd { font-family: var(--font-mono); font-size: .8rem; background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; color: var(--fg); }
+.keys kbd:not(:first-child) { margin-left: 10px; }
+.re-badge { color: var(--hazard); }
+.sheet.wide { width: min(1000px, 100%); }
+.sheet.wide .preview { overflow-x: auto; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: none; border-bottom: 3px solid transparent; padding: 8px 14px; font-weight: 600; color: var(--muted); margin-bottom: -1px; }
+.tab.on { color: var(--fg); border-bottom-color: var(--hazard); }
+
+/* 3-2-1 Fight countdown */
+.countdown { position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; background: rgba(6,8,11,.82); pointer-events: all; }
+.cd { font-family: var(--font-display); font-weight: 800; font-size: clamp(9rem, 35vw, 26rem); line-height: 1; color: var(--fg); animation: cdIn .85s cubic-bezier(.2,1.3,.4,1) both; }
+.cd.fight { color: var(--hazard); font-style: italic; font-size: clamp(5rem, 20vw, 16rem); text-shadow: 0 0 60px rgba(255,184,28,.5); animation: fightIn .75s cubic-bezier(.2,1.6,.4,1) both; }
+@keyframes cdIn { 0% { transform: scale(2.4); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(.85); opacity: 0; } }
+@keyframes fightIn { 0% { transform: scale(.3) rotate(-8deg); opacity: 0; } 40% { transform: scale(1.1) rotate(-3deg); opacity: 1; } 100% { transform: scale(1) rotate(-3deg); } }
+
+/* Walk-out intros */
+#introOverlay { z-index: 57; background: var(--bg); }
+.intro {
+  --corner: var(--hazard);
+  width: min(1200px, 100%); display: flex; flex-direction: column; align-items: center; text-align: center; gap: clamp(8px, 1.6vw, 16px);
+  border-top: 10px solid var(--corner); border-radius: 14px; padding: clamp(18px, 3vw, 40px);
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--corner) 22%, transparent), transparent 70%);
+}
+.intro.red { --corner: var(--red); }
+.intro.blue { --corner: var(--blue); }
+.intro-corner { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .25em; color: var(--corner); font-size: clamp(1.1rem, 2.6vw, 2rem); animation: fade .4s both; }
+.intro-weigh { color: var(--muted); font-style: italic; font-size: clamp(1rem, 2vw, 1.5rem); animation: fade .5s .25s both; }
+.intro-bot { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(3.2rem, 11vw, 9rem); line-height: .9; overflow-wrap: anywhere; text-wrap: balance; animation: slamIn .6s .55s cubic-bezier(.2,1.4,.4,1) both; }
+.intro.red .intro-bot { text-shadow: 0 0 50px color-mix(in srgb, var(--red) 55%, transparent); }
+.intro.blue .intro-bot { text-shadow: 0 0 50px color-mix(in srgb, var(--blue) 55%, transparent); }
+@keyframes slamIn { 0% { transform: scale(2.2); opacity: 0; filter: blur(8px); } 100% { transform: scale(1); opacity: 1; filter: none; } }
+.intro-stu { font-size: clamp(1.2rem, 2.6vw, 2rem); animation: fade .5s .9s both; }
+.intro-meta { font-family: var(--font-mono); color: var(--muted); font-size: clamp(.85rem, 1.4vw, 1.1rem); animation: fade .5s 1s both; }
+.facts { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; width: 100%; }
+.facts li { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--corner); border-radius: 10px; padding: 14px 18px; text-align: left; font-size: clamp(1.05rem, 1.9vw, 1.5rem); line-height: 1.3; animation: factIn .5s both; }
+.facts li:nth-child(1) { animation-delay: 1.3s; }
+.facts li:nth-child(2) { animation-delay: 1.8s; }
+@keyframes factIn { from { opacity: 0; transform: translateY(14px); } }
+.fact-tag { display: block; font-family: var(--font-display); font-weight: 700; text-transform: uppercase; letter-spacing: .14em; font-size: .62em; color: var(--corner); margin-bottom: 4px; }
+.intro-acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+.intro-acts .btn { font-size: 1.05rem; padding: 10px 16px; }
+.intro-acts .btn.big { font-size: clamp(1.3rem, 2.4vw, 1.8rem); padding: 14px 28px; font-family: var(--font-display); text-transform: uppercase; letter-spacing: .06em; }
+.faceoff { border-top-color: var(--hazard); }
+.fo-row { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: clamp(10px, 3vw, 40px); align-items: center; width: 100%; margin: clamp(10px, 3vw, 30px) 0; }
+.fo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.fo span { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(2rem, 6.5vw, 5.5rem); line-height: .95; overflow-wrap: anywhere; }
+.fo small { color: var(--muted); font-size: clamp(.95rem, 1.8vw, 1.4rem); }
+.fo.red span { color: var(--red); animation: inLeft .6s cubic-bezier(.2,1.3,.4,1) both; }
+.fo.blue span { color: var(--blue); animation: inRight .6s cubic-bezier(.2,1.3,.4,1) both; }
+@keyframes inLeft { from { transform: translateX(-60%); opacity: 0; } }
+@keyframes inRight { from { transform: translateX(60%); opacity: 0; } }
+.fo-vs { font-family: var(--font-display); font-weight: 800; font-style: italic; color: var(--hazard); font-size: clamp(2.2rem, 6vw, 5rem); animation: slamIn .5s .45s both; }
+@media (max-width: 640px) { .fo-row { grid-template-columns: minmax(0,1fr); } }
+
+/* Dramatic shuffle */
+.shuffle-banner {
+  position: fixed; left: 50%; bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  z-index: 60; pointer-events: none; text-align: center; max-width: calc(100% - 32px);
+  background: var(--bg); border: 3px solid var(--hazard); border-radius: 12px;
+  padding: 14px 34px 12px; box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.shuffle-banner::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 8px; border-radius: 8px 8px 0 0;
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 10px, var(--bg) 10px 20px);
+  animation: march .5s linear infinite;
+}
+@keyframes march { to { background-position: 28px 0; } }
+.sb-text {
+  font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  font-size: clamp(2rem, 6vw, 4.5rem); line-height: 1; color: var(--fg); margin-top: 6px;
+}
+.shuffle-banner:not(.locked) .sb-text::after { content: "…"; animation: blink .6s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .2; } }
+.sb-sub { color: var(--muted); font-size: clamp(.9rem, 1.6vw, 1.15rem); }
+.shuffle-banner.locked { background: var(--hazard); animation: slam .35s cubic-bezier(.2,1.4,.4,1); }
+.shuffle-banner.locked::before { display: none; }
+.shuffle-banner.locked .sb-text { color: var(--hazard-ink); }
+.shuffle-banner.locked .sb-sub { color: var(--hazard-ink); opacity: .75; }
+@keyframes slam { from { transform: translateX(-50%) scale(1.6); opacity: 0; } }
+body.is-shuffling .main { pointer-events: none; }
+body.is-shuffling .slot .bot, body.is-shuffling .entry .bot-in { animation: flick .14s ease-out; }
+@keyframes flick { from { opacity: 0; transform: translateY(-4px); filter: blur(2px); } }
+body.is-shuffling .round:first-child .match { border-color: var(--hazard); }
+body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease-out; }
+@keyframes glow { 0% { box-shadow: 0 0 0 4px var(--hazard), 0 0 40px rgba(255,184,28,.5); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 80;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+
+@media (max-width: 900px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .roster { border-right: none; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); overflow: visible; }
+  .main:not(.roster-hidden) .floor-head, .main:not(.roster-hidden) .bracket-scroll { padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+  .floor { min-height: 70vh; }
+}
+@media (max-width: 640px) {
+  .ring { grid-template-columns: minmax(0,1fr); }
+  .vs { padding: 0; }
+  .fighter { min-height: 160px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Battle Bot Bracket</h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="toggleRoster" type="button"></button>
+      <button class="btn primary" id="nextBattle" type="button">Next battle ▸</button>
+      <div class="seg" role="group" aria-label="Bracket size">
+        <button class="btn" id="zoomOut" type="button" aria-label="Smaller bracket">A−</button>
+        <button class="btn" id="zoomIn" type="button" aria-label="Larger bracket">A+</button>
+      </div>
+      <button class="btn" id="shuffleTop" type="button">Randomize</button>
+      <button class="btn" id="fullscreen" type="button">Full screen</button>
+      <button class="btn ghost" id="sound" type="button">Sound: on</button>
+      <button class="btn" id="undo" type="button" disabled>↶ Undo</button>
+      <button class="btn" id="results" type="button">Results</button>
+      <button class="btn ghost" id="backup" type="button">Save / load</button>
+    </div>
+  </header>
+
+  <div class="main" id="main">
+    <aside class="roster" aria-label="Roster">
+      <div class="roster-head">
+        <h2>Roster &amp; seeding</h2>
+        <span class="hint" id="countHint"></span>
+      </div>
+      <div class="notice" id="sampleNotice" hidden>
+        <strong>Sample roster.</strong> These bots are examples so you can see how the bracket works. Edit them, or press <em>Clear roster</em> to start fresh.
+      </div>
+      <p class="hint">Order sets the starting spots: #1 is the top seed. Type in any box to edit names; changes show in the bracket right away.</p>
+      <ol class="entries" id="entries"></ol>
+
+      <form class="add" id="addForm" autocomplete="off">
+        <label for="newBot">Add a bot</label>
+        <div class="row">
+          <input id="newBot" placeholder="Bot code name" required>
+          <input id="newStu" placeholder="Student name(s)">
+        </div>
+        <button class="btn primary" type="submit">Add to roster</button>
+        <details class="bulk">
+          <summary>Paste a whole list</summary>
+          <p>One bot per line: <code>Bot name - Student, Student</code></p>
+          <textarea id="bulkText" placeholder="Torque Wrench - Maya R., Devin T.&#10;Spinzilla - Jordan K."></textarea>
+          <button class="btn" type="button" id="bulkAdd">Add these bots</button>
+        </details>
+        <div class="import">
+          <label class="btn" for="csvFile">Import CSV file</label>
+          <input type="file" id="csvFile" class="vh" accept=".csv,text/csv">
+          <span class="hint">Reads column F (first name), G (last name) and H (bot name). Students with the same bot name become one team.</span>
+        </div>
+      </form>
+
+      <label class="toggle" for="thirdToggle"><input type="checkbox" id="thirdToggle"> Include a 3rd-place battle (semifinal losers)</label>
+      <div class="roster-actions">
+        <button class="btn" type="button" id="shuffle">Randomize spots</button>
+        <button class="btn" type="button" id="clearResults">Reset results</button>
+        <button class="btn danger" type="button" id="clearRoster">Clear roster</button>
+      </div>
+    </aside>
+
+    <section class="floor" aria-label="Bracket">
+      <div class="floor-head">
+        <h2>Single elimination</h2>
+        <span class="hint">Click any battle to put it on the big screen.</span>
+      </div>
+      <div class="ondeck" id="ondeck" hidden></div>
+      <div class="bracket-scroll" id="scroller">
+        <div class="bracket" id="bracket"></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="overlay" id="battleOverlay" hidden></div>
+<div class="overlay" id="introOverlay" hidden></div>
+<div class="overlay" id="champOverlay" hidden></div>
+<div class="countdown" id="countdown" hidden aria-live="assertive"></div>
+<div class="overlay" id="dialog" hidden></div>
+<canvas id="fx" hidden aria-hidden="true"></canvas>
+<div class="toast" id="toast" hidden></div>
+<div class="shuffle-banner" id="shuffleBanner" hidden aria-live="polite"><span class="sb-text">Shuffling</span><span class="sb-sub"></span></div>
+
+<script>
+(function () {
+  const KEY = 'battle-bot-bracket-v1';
+  const BYE = 'BYE';
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = () => Math.random().toString(36).slice(2, 9);
+
+  const SAMPLE = [
+    ['Torque Wrench', 'Maya R., Devin T.'],
+    ['Spinzilla', 'Jordan K., Ana P.'],
+    ['Brick House', 'Luis G.'],
+    ['Voltage Vulture', 'Sam W., Priya N.'],
+    ['Flip Side', 'Ethan B.'],
+    ['Rust Bucket', 'Zoe L., Marcus H.']
+  ];
+
+  function fresh() {
+    return { entries: SAMPLE.map(([bot, students]) => ({ id: uid(), bot, students })), winners: {}, methods: {}, rematches: {}, sample: true, scale: 1, rosterOpen: true, thirdPlace: true, timerSecs: 180 };
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.entries)) return null;
+      return Object.assign({ winners: {}, methods: {}, rematches: {}, scale: 1, rosterOpen: true, sample: false, thirdPlace: true, timerSecs: 180 }, d);
+    } catch (e) { return null; }
+  }
+  let S = load() || fresh();
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+  function clearResults() { S.winners = {}; S.methods = {}; S.rematches = {}; }
+
+  const METHODS = [['balloon', 'Balloon pop', 'Balloon pop'], ['pushed', 'Pushed out by opponent', 'Pushed out'], ['forfeit', 'Forfeit', 'Forfeit'], ['error', 'Left arena due to user error', 'User error']];
+  const methodLabel = (k, short) => { const m = METHODS.find(x => x[0] === k); return m ? m[short ? 2 : 1] : ''; };
+
+  /* ---------- Bracket math ---------- */
+  function sizeFor(n) { let s = 2; while (s < n) s *= 2; return s; }
+  function seedOrder(size) {
+    let o = [1];
+    while (o.length < size) { const t = o.length * 2 + 1; o = o.flatMap(s => [s, t - s]); }
+    return o;
+  }
+  function roundName(r, R) {
+    const left = R - r;
+    if (left === 1) return 'Final';
+    if (left === 2) return 'Semifinals';
+    if (left === 3) return 'Quarterfinals';
+    return 'Round of ' + Math.pow(2, left);
+  }
+  function loserOf(mt) { return mt && !mt.isBye && mt.winner ? (mt.winner === mt.a ? mt.b : mt.a) : null; }
+  function build() {
+    const n = S.entries.length;
+    if (n < 2) return null;
+    const size = sizeFor(n);
+    const R = Math.log2(size);
+    const order = seedOrder(size);
+    S.entries.forEach((e, i) => { e.seed = i + 1; });
+    const rounds = [];
+    let num = 0;
+    const pickWinner = (key, a, b) => { const w = S.winners[key]; return a && b ? (w === a.id ? a : w === b.id ? b : null) : null; };
+    for (let r = 0; r < R; r++) {
+      const count = size / Math.pow(2, r + 1);
+      const ms = [];
+      for (let m = 0; m < count; m++) {
+        let a, b;
+        if (r === 0) {
+          const sa = order[2 * m], sb = order[2 * m + 1];
+          a = sa <= n ? S.entries[sa - 1] : BYE;
+          b = sb <= n ? S.entries[sb - 1] : BYE;
+        } else {
+          a = rounds[r - 1][2 * m].winner || null;
+          b = rounds[r - 1][2 * m + 1].winner || null;
+        }
+        const isBye = a === BYE || b === BYE;
+        const key = r + '-' + m;
+        const winner = isBye ? (a === BYE ? (b === BYE ? null : b) : a) : pickWinner(key, a, b);
+        const match = { r, m, a, b, winner, isBye, key };
+        if (!isBye) match.num = ++num;
+        ms.push(match);
+      }
+      rounds.push(ms);
+    }
+    // 3rd-place battle: the two semifinal losers (only when both semifinals are real battles)
+    let third = null;
+    if (S.thirdPlace !== false && R >= 2) {
+      const [s0, s1] = rounds[R - 2];
+      if (!s0.isBye && !s1.isBye) {
+        const a = loserOf(s0), b = loserOf(s1);
+        third = { key: '3p', third: true, a, b, isBye: false, winner: pickWinner('3p', a, b) };
+        const fin = rounds[R - 1][0];
+        third.num = fin.num; fin.num += 1; num += 1;   // played just before the final
+      }
+    }
+    return { rounds, R, size, n, total: num, third };
+  }
+  let B = build();
+
+  function playable(mt) { return !mt.isBye && mt.a && mt.b; }
+  function allMatches() {
+    if (!B) return [];
+    const list = B.rounds.flat();
+    if (B.third) list.splice(list.length - 1, 0, B.third);
+    return list;
+  }
+  function hasResults() { return Object.keys(S.winners).length > 0; }
+  function matchRound(mt) { return mt.third ? '3rd-place battle' : roundName(mt.r, B.R); }
+
+  // Later results that depend on who won `key` and would be cleared if it changed.
+  function cascadeKeys(key, oldId) {
+    const keys = [];
+    if (!oldId || key === '3p' || !B) return keys;
+    const [r, m] = key.split('-').map(Number);
+    let rr = r + 1, mm = m >> 1;
+    while (rr < B.R) {
+      const k = rr + '-' + mm;
+      if (S.winners[k] === oldId) { keys.push(k); rr++; mm >>= 1; } else break;
+    }
+    if (B.third && S.winners['3p'] && (r === B.R - 2 || keys.includes((B.R - 2) + '-' + (m >> (B.R - 2 - r))))) keys.push('3p');
+    return keys;
+  }
+  function setWinner(key, id) {
+    const old = S.winners[key];
+    const mt0 = findMatch(key), who = id && mt0 ? [mt0.a, mt0.b].find(p => p && p.id === id) : null;
+    pushUndo(id ? `${who ? who.bot : 'Winner'} wins Battle ${mt0 ? mt0.num : ''}` : `Cleared Battle ${mt0 ? mt0.num : ''}`);
+    cascadeKeys(key, old).forEach(x => { delete S.winners[x]; delete S.methods[x]; delete S.rematches[x]; });
+    delete S.methods[key];
+    if (id) S.winners[key] = id; else delete S.winners[key];
+    S.sample = false;
+    $('#sampleNotice').hidden = true;
+    B = build();
+    if (B && B.third && (S.winners['3p'] || S.rematches['3p']) && !playable(B.third)) { delete S.winners['3p']; delete S.methods['3p']; delete S.rematches['3p']; }
+    save();
+    refresh();
+  }
+
+  /* ---------- Rendering: roster ---------- */
+  const ICONS = {
+    up: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10l4-4 4 4"/></svg>',
+    down: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6l4 4 4-4"/></svg>',
+    del: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M12 14v4M8 21h8M9 18h6"/></svg>'
+  };
+
+  function renderRoster() {
+    const list = $('#entries');
+    list.innerHTML = S.entries.map((e, i) => `
+      <li class="entry" data-id="${e.id}">
+        <span class="num">#${i + 1}</span>
+        <div class="fields">
+          <input class="bot-in" id="bot-${e.id}" value="${esc(e.bot)}" aria-label="Bot code name for spot ${i + 1}" placeholder="Bot code name">
+          <input class="stu-in" id="stu-${e.id}" value="${esc(e.students)}" aria-label="Student names for spot ${i + 1}" placeholder="Student name(s)">
+        </div>
+        <div class="row-tools">
+          <button class="icon-btn" type="button" data-act="up" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>${ICONS.up}</button>
+          <button class="icon-btn" type="button" data-act="down" aria-label="Move down" ${i === S.entries.length - 1 ? 'disabled' : ''}>${ICONS.down}</button>
+          <button class="icon-btn del" type="button" data-act="del" aria-label="Remove ${esc(e.bot)}">${ICONS.del}</button>
+        </div>
+      </li>`).join('');
+    $('#sampleNotice').hidden = !S.sample;
+    $('#thirdToggle').checked = S.thirdPlace !== false;
+  }
+
+  /* ---------- Rendering: bracket ---------- */
+  function slotHTML(p, winner, isByeMatch, waitText) {
+    if (p === BYE) return `<div class="slot byeslot"><span class="seed">–</span><span class="who"><span class="bot">Bye</span></span></div>`;
+    if (!p) return `<div class="slot tbd"><span class="seed"></span><span class="who"><span class="bot">${waitText || 'Waiting…'}</span></span></div>`;
+    let cls = '';
+    if (winner) cls = winner.id === p.id ? (isByeMatch ? '' : 'win') : 'lose';
+    return `<div class="slot ${cls}"><span class="seed">${p.seed}</span><span class="who"><span class="bot">${esc(p.bot || 'Unnamed bot')}</span>${p.students ? `<span class="stu">${esc(p.students)}</span>` : ''}</span></div>`;
+  }
+  function matchCardHTML(mt) {
+    if (mt.isBye) {
+      const p = mt.a === BYE ? mt.b : mt.a;
+      return `<div class="match bye" data-k="${mt.key}"><div class="mhead"><span>Bye</span><span class="status">auto-advance</span></div>${slotHTML(p, mt.winner, true)}${slotHTML(BYE)}</div>`;
+    }
+    const ready = playable(mt) && !mt.winner;
+    const reN = (S.rematches[mt.key] || []).length;
+    const status = mt.winner ? (methodLabel(S.methods[mt.key], true) || 'done') : (reN ? `rematch ×${reN}` : (ready ? 'ready' : 'waiting'));
+    const label = mt.third ? `3rd place · Battle ${mt.num}` : `Battle ${mt.num}`;
+    const wait = mt.third ? 'Semifinal loser' : null;
+    return `<button type="button" class="match ${mt.third ? 'third' : ''} ${ready ? 'ready' : ''} ${mt.winner ? 'decided' : ''} ${activeKey === mt.key ? 'active' : ''}" data-k="${mt.key}" aria-label="Open battle ${mt.num}">
+      <div class="mhead"><span>${label}</span><span class="status">${esc(status)}</span></div>
+      ${slotHTML(mt.a, mt.winner, false, wait)}${slotHTML(mt.b, mt.winner, false, wait)}
+    </button>`;
+  }
+  let activeKey = null;
+
+  function renderBracket() {
+    const el = $('#bracket');
+    const n = S.entries.length;
+    if (!B) {
+      $('#ondeck').hidden = true;
+      el.innerHTML = `<div class="empty-floor">Add at least two bots to the roster to build the bracket.</div>`;
+      $('#meta').textContent = n === 1 ? '1 bot entered' : 'No bots entered yet';
+      return;
+    }
+    const byes = B.size - B.n;
+    const done = allMatches().filter(mt => !mt.isBye && mt.winner).length;
+    $('#meta').textContent = `${B.n} bots · ${B.size}-slot bracket${byes ? ` · ${byes} bye${byes > 1 ? 's' : ''}` : ''} · ${done} of ${B.total} battles decided`;
+
+    let html = '<svg class="wires" id="wires"></svg>';
+    B.rounds.forEach((ms, r) => {
+      const decided = ms.filter(mt => !mt.isBye && mt.winner).length;
+      const real = ms.filter(mt => !mt.isBye).length;
+      html += `<div class="round"><div class="round-title"><span>${roundName(r, B.R)}</span><span>${decided}/${real}</span></div><div class="round-body">`;
+      ms.forEach(mt => { html += matchCardHTML(mt); });
+      html += '</div></div>';
+    });
+    const champ = B.rounds[B.R - 1][0].winner;
+    html += `<div class="round champ"><div class="round-title"><span>${B.third ? 'Podium' : 'Champion'}</span><span></span></div><div class="round-body"><div class="podium">
+      <button type="button" class="champ-card ${champ ? '' : 'empty'}" data-k="champ" ${champ ? '' : 'disabled'} aria-label="Show champion">${ICONS.trophy}
+        <div class="label">${champ ? 'Tournament champion' : 'Champion to be decided'}</div>
+        ${champ ? `<div class="bot">${esc(champ.bot || 'Unnamed bot')}</div>${champ.students ? `<div class="stu">${esc(champ.students)}</div>` : ''}` : ''}
+      </button>
+      ${B.third ? matchCardHTML(B.third) : ''}
+    </div></div></div>`;
+    el.innerHTML = html;
+    el.style.minHeight = `calc(${Math.max(B.rounds[0].length, B.third ? 3 : 1)} * 7.6em + 2.2em)`;
+    renderOnDeck();
+    requestAnimationFrame(drawWires);
+  }
+
+  function drawWires() {
+    const el = $('#bracket'), svg = $('#wires');
+    if (!svg || !B) return;
+    const base = el.getBoundingClientRect();
+    svg.setAttribute('width', el.scrollWidth);
+    svg.setAttribute('height', el.scrollHeight);
+    const css = getComputedStyle(document.documentElement);
+    const lineC = css.getPropertyValue('--line').trim(), hotC = css.getPropertyValue('--hazard').trim();
+    const box = (k) => { const n = el.querySelector(`[data-k="${k}"]`); if (!n) return null; const b = n.getBoundingClientRect(); return { l: b.left - base.left, r: b.right - base.left, y: b.top - base.top + b.height / 2 }; };
+    let paths = '';
+    const link = (from, to, hot) => {
+      if (!from || !to) return;
+      const mx = from.r + (to.l - from.r) / 2;
+      paths += `<path d="M${from.r} ${from.y} H${mx} V${to.y} H${to.l}" fill="none" stroke="${hot ? hotC : lineC}" stroke-width="${hot ? 2.5 : 1.5}"/>`;
+    };
+    for (let r = 1; r < B.R; r++) {
+      B.rounds[r].forEach((mt, m) => {
+        const t = box(mt.key);
+        [2 * m, 2 * m + 1].forEach(fm => { const f = B.rounds[r - 1][fm]; link(box(f.key), t, !!f.winner); });
+      });
+    }
+    const fin = B.rounds[B.R - 1][0];
+    link(box(fin.key), box('champ'), !!fin.winner);
+    svg.innerHTML = paths;
+  }
+
+  /* ---------- Sound ---------- */
+  let audio = null;
+  function tone(freq, start, dur, vol, type) {
+    if (S.sound === false) return;
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      const t = audio.currentTime + start, o = audio.createOscillator(), g = audio.createGain();
+      o.type = type || 'square'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.015);
+      g.gain.setValueAtTime(vol, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(audio.destination); o.start(t); o.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  function beep(freq, dur, vol, type) { tone(freq, 0, dur, vol, type); }
+  const brass = (f, s, d, v) => { tone(f, s, d, v, 'sawtooth'); tone(f * 2, s, d, v * 0.35, 'triangle'); };
+  function fanfare(big) {
+    // G4 G4 G4 C5 ... E5 G5 C6 — a short "charge"
+    const G4 = 392, C5 = 523.25, E5 = 659.25, G5 = 783.99, C6 = 1046.5;
+    const v = 0.05;
+    brass(G4, 0, .12, v); brass(G4, .14, .12, v); brass(G4, .28, .12, v);
+    brass(C5, .42, .3, v); brass(E5, .74, .14, v); brass(G5, .9, .5, v);
+    if (big) {
+      brass(E5, 1.45, .14, v); brass(G5, 1.6, .14, v); brass(C6, 1.76, 1.1, v);
+      tone(C5, 1.76, 1.1, v * .6, 'sawtooth'); tone(E5, 1.76, 1.1, v * .5, 'sawtooth');
+    }
+  }
+  function buzzer() { tone(110, 0, 1.3, .07, 'sawtooth'); tone(117, 0, 1.3, .07, 'sawtooth'); }
+
+  /* ---------- Confetti ---------- */
+  const fx = $('#fx'), ctx = fx.getContext('2d');
+  let parts = [], fxRunning = false, rainUntil = 0;
+  const COLORS = ['#ffb81c', '#ef4b45', '#3d8bff', '#e9edf1', '#ffd66b'];
+  const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeFx() { const d = window.devicePixelRatio || 1; fx.width = innerWidth * d; fx.height = innerHeight * d; ctx.setTransform(d, 0, 0, d, 0, 0); }
+  function addPart(x, y, vx, vy) {
+    parts.push({ x, y, vx, vy, w: 6 + Math.random() * 7, h: 4 + Math.random() * 5, a: Math.random() * 6, va: (Math.random() - .5) * .4, c: COLORS[(Math.random() * COLORS.length) | 0], life: 0 });
+  }
+  function burst(x, y, n) {
+    if (reduceMotion()) return;
+    for (let i = 0; i < n; i++) { const ang = -Math.PI / 2 + (Math.random() - .5) * 2.2, sp = 6 + Math.random() * 9; addPart(x, y, Math.cos(ang) * sp, Math.sin(ang) * sp); }
+    runFx();
+  }
+  function rain(ms) { if (reduceMotion()) return; rainUntil = performance.now() + ms; runFx(); }
+  function runFx() {
+    if (fxRunning) return;
+    fxRunning = true; sizeFx(); fx.hidden = false;
+    const step = () => {
+      const now = performance.now();
+      if (now < rainUntil) for (let i = 0; i < 5; i++) addPart(Math.random() * innerWidth, -10, (Math.random() - .5) * 2, 2 + Math.random() * 3);
+      ctx.clearRect(0, 0, innerWidth, innerHeight);
+      parts = parts.filter(p => p.y < innerHeight + 30 && p.life < 600);
+      parts.forEach(p => {
+        p.vy += 0.25; p.vx *= 0.985; p.vy = Math.min(p.vy, 7); p.x += p.vx; p.y += p.vy; p.a += p.va; p.life++;
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c;
+        ctx.fillRect(-p.w / 2, -p.h / 2 * Math.abs(Math.cos(p.a * 2)), p.w, p.h * Math.abs(Math.cos(p.a * 2)) + 1); ctx.restore();
+      });
+      if (parts.length || now < rainUntil) requestAnimationFrame(step);
+      else { fxRunning = false; fx.hidden = true; ctx.clearRect(0, 0, innerWidth, innerHeight); }
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- Battle timer ---------- */
+  const T = { key: null, remaining: 180, endAt: 0, running: false, done: false, iv: 0, lastSec: null };
+  const fmt = (s) => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  function timerLeft() { return T.running ? Math.max(0, (T.endAt - Date.now()) / 1000) : T.remaining; }
+  function resetTimer(key) { clearInterval(T.iv); Object.assign(T, { key, remaining: S.timerSecs || 180, running: false, done: false, started: false, lastSec: null }); }
+  function stopTimer() { if (T.running) { T.remaining = timerLeft(); T.running = false; clearInterval(T.iv); } }
+  function startTimer() {
+    if (T.done || T.remaining <= 0) { T.remaining = S.timerSecs || 180; T.done = false; }
+    T.endAt = Date.now() + T.remaining * 1000; T.running = true; T.started = true;
+    beep(880, .12, .05, 'square');
+    clearInterval(T.iv);
+    T.iv = setInterval(() => {
+      const left = timerLeft(), sec = Math.ceil(left);
+      if (left <= 0) { T.running = false; T.done = true; T.remaining = 0; clearInterval(T.iv); buzzer(); }
+      else if (sec <= 5 && sec !== T.lastSec) beep(1200, .06, .05);
+      T.lastSec = sec;
+      updateTimerUI();
+    }, 100);
+    updateTimerUI();
+  }
+  function timerToggle() {
+    if (T.running) { stopTimer(); updateTimerUI(); }
+    else if (!T.started || T.done) fightCountdown(startTimer);
+    else startTimer();
+  }
+  function updateTimerUI() {
+    const box = document.querySelector('#battleOverlay .timer');
+    if (!box || T.key !== openKey) return;
+    const left = timerLeft();
+    box.querySelector('.digits').textContent = T.done ? 'TIME!' : fmt(left);
+    box.classList.toggle('warn', T.running && left <= 10);
+    box.classList.toggle('done', T.done);
+    box.classList.toggle('running', T.running);
+    const sb = box.querySelector('[data-do="timer"]');
+    sb.textContent = T.running ? 'Pause' : (T.done ? 'Restart' : (T.started ? 'Resume' : 'Start'));
+    box.querySelectorAll('[data-do="adj"]').forEach(b => b.disabled = T.running);
+  }
+  function timerHTML() {
+    return `<div class="timer" aria-label="Battle timer">
+      <button class="btn ghost" type="button" data-do="adj" data-v="-30" aria-label="30 seconds less">−30s</button>
+      <div class="digits" aria-live="off">3:00</div>
+      <button class="btn ghost" type="button" data-do="adj" data-v="30" aria-label="30 seconds more">+30s</button>
+      <button class="btn primary" type="button" data-do="timer">Start</button>
+      <button class="btn" type="button" data-do="treset">Reset</button>
+    </div>`;
+  }
+
+  /* ---------- Battle overlay ---------- */
+  let openKey = null, pending = null, rematchAsk = false;
+  function findMatch(k) { return allMatches().find(mt => mt.key === k); }
+
+  function fighterHTML(p, side, mt) {
+    const corner = side === 'a' ? 'red' : 'blue';
+    const cornerName = side === 'a' ? 'Red corner' : 'Blue corner';
+    if (!p) {
+      let text;
+      if (mt.third) { const f = B.rounds[B.R - 2][side === 'a' ? 0 : 1]; text = `Loser of Battle ${f.num}`; }
+      else { const f = B.rounds[mt.r - 1] && B.rounds[mt.r - 1][2 * mt.m + (side === 'a' ? 0 : 1)]; text = `Winner of Battle ${f && f.num ? f.num : '?'}`; }
+      return `<div class="fighter ${corner} tbd"><span class="corner">${cornerName}</span><span class="fbot">${text}</span></div>`;
+    }
+    const state = mt.winner ? (mt.winner.id === p.id ? 'win' : 'lose') : '';
+    const canPick = playable(mt);
+    const stamp = mt.third ? '3rd place' : (mt.r === B.R - 1 ? 'Champion' : 'Winner');
+    return `<button type="button" class="fighter ${corner} ${state}" data-pick="${p.id}" ${canPick ? '' : 'disabled'}>
+      ${state === 'win' ? `<span class="stamp">${stamp}</span>` : ''}
+      <span class="corner">${cornerName} · Seed ${p.seed}</span>
+      <span class="fbot">${esc(p.bot || 'Unnamed bot')}</span>
+      ${p.students ? `<span class="fstu">${esc(p.students)}</span>` : ''}
+      ${canPick && !mt.winner ? '<span class="pick">Tap to declare winner</span>' : ''}
+    </button>`;
+  }
+
+  function nextPlayable(afterKey) {
+    const list = allMatches().filter(mt => playable(mt) && !mt.winner);
+    if (!list.length) return null;
+    const all = allMatches().filter(mt => !mt.isBye);
+    const idx = afterKey ? all.findIndex(mt => mt.key === afterKey) : -1;
+    return list.find(mt => all.indexOf(mt) > idx) || list[0];
+  }
+
+  function renderOverlay() {
+    const ov = $('#battleOverlay');
+    const mt = openKey && findMatch(openKey);
+    if (!mt) { ov.hidden = true; openKey = null; return; }
+    const isFinal = !mt.third && mt.r === B.R - 1;
+    const next = nextPlayable(mt.key);
+    let confirm = '';
+    if (pending) {
+      confirm = `<div class="confirm-bar"><span>Changing this winner also clears ${pending.keys.length} later battle result${pending.keys.length > 1 ? 's' : ''} that depend${pending.keys.length > 1 ? '' : 's'} on it.</span>
+        <span class="group" style="display:flex;gap:8px"><button class="btn" type="button" data-do="cancelPending">Keep it</button><button class="btn primary" type="button" data-do="confirmPending">Change winner</button></span></div>`;
+    }
+    const reList = S.rematches[mt.key] || [];
+    const REASONS = ['Both bots stopped', 'Arena problem', 'Battery or equipment failure', 'Other'];
+    const rematchBar = rematchAsk ? `<div class="confirm-bar"><span>Why is this a rematch?</span>
+      <span class="chips">${REASONS.map(r => `<button type="button" class="chip" data-reason="${esc(r)}">${r}</button>`).join('')}<button type="button" class="btn ghost" data-do="cancelRematch">Cancel</button></span></div>` : '';
+    const method = S.methods[mt.key];
+    const methodRow = mt.winner ? `<div class="method"><span>How did <strong>${esc(mt.winner.bot || 'the winner')}</strong> win?</span>
+      <div class="chips">${METHODS.map(([k, label]) => `<button type="button" class="chip ${method === k ? 'on' : ''}" data-method="${k}" aria-pressed="${method === k}">${label}</button>`).join('')}</div></div>` : '';
+    ov.innerHTML = `<div class="battle" role="dialog" aria-modal="true" aria-label="Battle ${mt.num}">
+      <div class="battle-top">
+        <div class="round-label">${matchRound(mt)}<small>Battle ${mt.num} of ${B.total}${reList.length ? ` · <span class="re-badge">Rematch ×${reList.length}</span>` : ''}</small></div>
+        ${timerHTML()}
+        <button class="btn" type="button" data-do="close">Close ✕</button>
+      </div>
+      ${isFinal && mt.winner ? `<div class="champ-banner">${esc(mt.winner.bot || 'Unnamed bot')} wins the tournament!</div>` : ''}
+      <div class="ring">
+        ${fighterHTML(mt.a, 'a', mt)}
+        <div class="vs">VS</div>
+        ${fighterHTML(mt.b, 'b', mt)}
+      </div>
+      ${confirm}
+      ${rematchBar}
+      ${methodRow}
+      <div class="battle-foot">
+        <div class="group">
+          <button class="btn danger" type="button" data-do="clear" ${mt.winner ? '' : 'disabled'}>Clear result</button>
+          ${isFinal && mt.winner ? '<button class="btn" type="button" data-do="champ">Show champion</button>' : ''}
+          <button class="btn" type="button" data-do="rematch" ${playable(mt) && !mt.winner ? '' : 'disabled'}>Rematch / no contest</button>
+          <button class="btn" type="button" data-do="intro" ${playable(mt) ? '' : 'disabled'}>Walk-out intros</button>
+        </div>
+        <div class="keys" aria-hidden="true"><kbd>←</kbd> red wins <kbd>→</kbd> blue wins <kbd>Space</kbd> timer <kbd>I</kbd> intros <kbd>N</kbd> next <kbd>U</kbd> undo</div>
+        <div class="group">
+          <button class="btn primary" type="button" data-do="next" ${next && next.key !== mt.key ? '' : 'disabled'}>${next && next.key !== mt.key ? `Next battle ▸ <span style="font-weight:500">(Battle ${next.num})</span>` : 'No other battles ready'}</button>
+        </div>
+      </div>
+    </div>`;
+    ov.hidden = false;
+    updateTimerUI();
+  }
+
+  function openBattle(k) {
+    if (T.key !== k) resetTimer(k);
+    openKey = k; pending = null; rematchAsk = false; activeKey = k;
+    renderOverlay();
+    markActive();
+    const f = $('#battleOverlay .fighter:not([disabled])') || $('#battleOverlay [data-do="close"]');
+    if (f) f.focus({ preventScroll: true });
+  }
+  function closeBattle() {
+    const k = openKey;
+    openKey = null; pending = null; rematchAsk = false; activeKey = null;
+    $('#battleOverlay').hidden = true;
+    markActive();
+    const card = k && document.querySelector(`#bracket [data-k="${k}"]`);
+    if (card) { card.scrollIntoView({ block: 'nearest', inline: 'nearest' }); card.focus({ preventScroll: true }); }
+  }
+  function markActive() {
+    document.querySelectorAll('#bracket .match.active').forEach(n => n.classList.remove('active'));
+    if (activeKey) { const n = document.querySelector(`#bracket [data-k="${activeKey}"]`); if (n) n.classList.add('active'); }
+  }
+
+  function declare(key, id) {
+    stopTimer();
+    setWinner(key, id);
+    const mt = findMatch(key);
+    if (!mt || !mt.winner) return;
+    const isFinal = !mt.third && mt.r === B.R - 1;
+    const card = document.querySelector('#battleOverlay .fighter.win');
+    if (card) {
+      const r = card.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height * 0.35, isFinal ? 220 : 120);
+      card.classList.add('celebrate');
+    }
+    fanfare(isFinal);
+    if (isFinal) setTimeout(() => { if (openKey === key && findMatch(key).winner) showChampion(true); }, 1500);
+  }
+  function setMethod(k) {
+    if (!openKey || !S.winners[openKey]) return;
+    pushUndo('Changed how Battle ' + (findMatch(openKey) || {}).num + ' was won');
+    if (S.methods[openKey] === k) delete S.methods[openKey]; else S.methods[openKey] = k;
+    save(); renderBracket(); renderOverlay();
+  }
+  function pick(id) {
+    const mt = findMatch(openKey);
+    if (!mt || !playable(mt)) return;
+    const old = S.winners[mt.key];
+    if (old === id) return;
+    const keys = cascadeKeys(mt.key, old);
+    if (old && keys.length) { pending = { id, keys }; renderOverlay(); return; }
+    declare(mt.key, id);
+  }
+
+  $('#battleOverlay').addEventListener('click', (ev) => {
+    if (ev.target === ev.currentTarget) return closeBattle();
+    const f = ev.target.closest('[data-pick]');
+    if (f && !f.disabled) return pick(f.dataset.pick);
+    const ch = ev.target.closest('[data-method]');
+    if (ch) return setMethod(ch.dataset.method);
+    const rs = ev.target.closest('[data-reason]');
+    if (rs) {
+      const mt = findMatch(openKey); if (!mt) return;
+      pushUndo(`Rematch logged for Battle ${mt.num}`);
+      (S.rematches[openKey] = S.rematches[openKey] || []).push({ reason: rs.dataset.reason, at: Date.now() });
+      rematchAsk = false; resetTimer(openKey); save(); renderBracket(); renderOverlay();
+      tone(330, 0, .18, .06, 'square'); tone(262, .2, .3, .06, 'square');
+      toast('Rematch logged. Reset the arena and go again!');
+      return;
+    }
+    const d = ev.target.closest('[data-do]');
+    if (!d) return;
+    const mt = findMatch(openKey);
+    switch (d.dataset.do) {
+      case 'close': closeBattle(); break;
+      case 'clear': if (mt) { pending = null; setWinner(mt.key, null); } break;
+      case 'next': { const nx = nextPlayable(openKey); if (nx) openBattle(nx.key); break; }
+      case 'cancelPending': pending = null; renderOverlay(); break;
+      case 'confirmPending': if (mt && pending) { const id = pending.id; pending = null; declare(mt.key, id); } break;
+      case 'champ': showChampion(true); break;
+      case 'rematch': rematchAsk = true; renderOverlay(); break;
+      case 'cancelRematch': rematchAsk = false; renderOverlay(); break;
+      case 'intro': openIntro(); break;
+      case 'timer': timerToggle(); break;
+      case 'treset': resetTimer(openKey); updateTimerUI(); break;
+      case 'adj': if (!T.running) {
+        T.done = false; T.started = false;
+        T.remaining = Math.min(600, Math.max(30, Math.round(timerLeft() / 30) * 30 + Number(d.dataset.v)));
+        S.timerSecs = T.remaining; save(); updateTimerUI();
+      } break;
+    }
+  });
+
+  /* ---------- Champion screen ---------- */
+  function showChampion(celebrate) {
+    if (!B) return;
+    const fin = B.rounds[B.R - 1][0];
+    if (!fin.winner) return;
+    const runner = loserOf(fin), third = B.third && B.third.winner;
+    const ov = $('#champOverlay');
+    const podium = (label, p) => p ? `<div class="pod"><span class="pod-label">${label}</span><span class="pod-bot">${esc(p.bot || 'Unnamed bot')}</span>${p.students ? `<span class="pod-stu">${esc(p.students)}</span>` : ''}</div>` : '';
+    ov.innerHTML = `<div class="champion-screen" role="dialog" aria-modal="true" aria-label="Tournament champion">
+      <div class="big-trophy">${ICONS.trophy}</div>
+      <div class="cs-label">Tournament champion</div>
+      <div class="cs-bot">${esc(fin.winner.bot || 'Unnamed bot')}</div>
+      ${fin.winner.students ? `<div class="cs-stu">${esc(fin.winner.students)}</div>` : ''}
+      ${(runner || third) ? `<div class="pods">${podium('2nd place', runner)}${podium('3rd place', third)}</div>` : ''}
+      <button class="btn primary" type="button" data-do="closeChamp">Back to bracket</button>
+    </div>`;
+    ov.hidden = false;
+    ov.querySelector('[data-do="closeChamp"]').focus();
+    if (celebrate) { rain(5500); burst(innerWidth / 2, innerHeight * 0.45, 200); fanfare(true); }
+  }
+  function closeChampion() { $('#champOverlay').hidden = true; }
+  $('#champOverlay').addEventListener('click', (ev) => {
+    if (ev.target === ev.currentTarget || ev.target.closest('[data-do="closeChamp"]')) closeChampion();
+  });
+
+  /* ---------- Generic dialogs ---------- */
+  function showDialog(html, onClick, cls) {
+    const dlg = $('#dialog');
+    dlg.innerHTML = `<div class="sheet ${cls || ''}" role="dialog" aria-modal="true">${html}</div>`;
+    dlg.hidden = false;
+    dlg.onclick = (ev) => {
+      if (ev.target === dlg) return closeDialog();
+      const b = ev.target.closest('[data-d]');
+      if (b) onClick(b.dataset.d);
+    };
+    const first = dlg.querySelector('.acts .btn:last-child');
+    if (first) first.focus();
+  }
+  function closeDialog() { $('#dialog').hidden = true; $('#dialog').innerHTML = ''; }
+  function confirmDialog(title, msg, okLabel, fn) {
+    showDialog(`<h3>${esc(title)}</h3><p>${esc(msg)}</p><div class="acts"><button class="btn" type="button" data-d="no">Cancel</button><button class="btn primary" type="button" data-d="yes">${esc(okLabel)}</button></div>`,
+      (a) => { closeDialog(); if (a === 'yes') fn(); });
+  }
+  // Changes that alter who sits where wipe recorded results; ask first.
+  function guarded(action, fn) {
+    if (!hasResults()) { pushUndo(action); return fn(); }
+    confirmDialog('Reset battle results?', `${action} changes the bracket, so all recorded winners will be cleared.`, 'Continue', () => { pushUndo(action); clearResults(); fn(); });
+  }
+  let toastT;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2200); }
+
+  /* ---------- Roster events ---------- */
+  function refresh() { B = build(); renderBracket(); if (openKey) renderOverlay(); }
+  function rosterChanged() { S.sample = false; save(); renderRoster(); refresh(); }
+
+  $('#entries').addEventListener('input', (ev) => {
+    const li = ev.target.closest('.entry'); if (!li) return;
+    const e = S.entries.find(x => x.id === li.dataset.id); if (!e) return;
+    if (ev.target.classList.contains('bot-in')) e.bot = ev.target.value;
+    else e.students = ev.target.value;
+    if (S.sample) { S.sample = false; $('#sampleNotice').hidden = true; }
+    save(); refresh();
+  });
+  $('#entries').addEventListener('click', (ev) => {
+    const b = ev.target.closest('[data-act]'); if (!b) return;
+    const li = b.closest('.entry'); const i = S.entries.findIndex(x => x.id === li.dataset.id);
+    if (i < 0) return;
+    const act = b.dataset.act;
+    if (act === 'del') {
+      const name = S.entries[i].bot || 'this bot';
+      guarded(`Removing ${name}`, () => { S.entries.splice(i, 1); rosterChanged(); });
+    } else {
+      const j = act === 'up' ? i - 1 : i + 1;
+      if (j < 0 || j >= S.entries.length) return;
+      guarded('Moving a bot to a different spot', () => {
+        [S.entries[i], S.entries[j]] = [S.entries[j], S.entries[i]];
+        rosterChanged();
+        const btn = document.querySelector(`.entry[data-id="${S.entries[j].id}"] [data-act="${act}"]`);
+        if (btn && !btn.disabled) btn.focus();
+      });
+    }
+  });
+  $('#addForm').addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    const bot = $('#newBot').value.trim(), students = $('#newStu').value.trim();
+    if (!bot) return;
+    guarded(`Adding ${bot}`, () => {
+      if (S.sample) { S.entries = []; }
+      S.entries.push({ id: uid(), bot, students });
+      $('#newBot').value = ''; $('#newStu').value = '';
+      rosterChanged(); $('#newBot').focus();
+      toast(`${bot} added`);
+    });
+  });
+  $('#bulkAdd').addEventListener('click', () => {
+    const lines = $('#bulkText').value.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return toast('Paste at least one line first');
+    const items = lines.map(l => {
+      const m = l.match(/^(.*?)(?:\s+[-–—]\s+|\t|\s*:\s*)(.*)$/);
+      return m ? { id: uid(), bot: m[1].trim(), students: m[2].trim() } : { id: uid(), bot: l, students: '' };
+    });
+    guarded('Adding bots', () => {
+      if (S.sample) S.entries = [];
+      S.entries.push(...items);
+      $('#bulkText').value = '';
+      rosterChanged();
+      toast(`${items.length} bot${items.length > 1 ? 's' : ''} added`);
+    });
+  });
+  /* ---------- CSV import: F = first name, G = last name, H = bot name ---------- */
+  function parseCSV(text) {
+    const rows = []; let row = [], field = '', q = false;
+    text = text.replace(/^﻿/, '');
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) {
+        if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+        else field += c;
+      } else if (c === '"') q = true;
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\n' || c === '\r') {
+        if (c === '\r' && text[i + 1] === '\n') i++;
+        row.push(field); rows.push(row); row = []; field = '';
+      } else field += c;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+  function teamsFromCSV(text) {
+    const rows = parseCSV(text);
+    const teams = new Map(); let students = 0, skipped = 0;
+    rows.forEach((r, i) => {
+      const first = (r[5] || '').trim(), last = (r[6] || '').trim(), bot = (r[7] || '').trim();
+      if (!first && !last && !bot) return;
+      if (i === 0 && /first|last|bot|name/i.test(first + ' ' + last + ' ' + bot) &&
+          /name|bot/i.test(bot)) return; // header row
+      if (!bot) { skipped++; return; }
+      const key = bot.toLowerCase();
+      if (!teams.has(key)) teams.set(key, { bot, names: [] });
+      const full = [first, last].filter(Boolean).join(' ');
+      if (full) { teams.get(key).names.push(full); students++; }
+    });
+    return { teams: [...teams.values()], students, skipped };
+  }
+  $('#csvFile').addEventListener('change', (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onerror = () => toast('That file could not be read');
+    reader.onload = () => {
+      const { teams, students, skipped } = teamsFromCSV(String(reader.result));
+      if (!teams.length) {
+        showDialog(`<h3>No bots found</h3><p>${esc(file.name)} has no bot names in column H. Check that first names are in column F, last names in G and bot names in H, then try again.</p><div class="acts"><button class="btn primary" type="button" data-d="close">OK</button></div>`, () => closeDialog());
+        return;
+      }
+      const rowsHTML = teams.map(t => `<tr><td>${esc(t.bot)}</td><td>${esc(t.names.join(', ')) || '<em>No names</em>'}</td></tr>`).join('');
+      const hasRoster = S.entries.length && !S.sample;
+      showDialog(`<h3>Import ${teams.length} bot${teams.length > 1 ? 's' : ''}</h3>
+        <p>Found ${students} student${students === 1 ? '' : 's'} in ${esc(file.name)}.${skipped ? ` ${skipped} row${skipped > 1 ? 's' : ''} had no bot name and will be left out.` : ''}</p>
+        <div class="preview"><table><thead><tr><th>Bot</th><th>Students</th></tr></thead><tbody>${rowsHTML}</tbody></table></div>
+        <div class="acts">
+          <button class="btn" type="button" data-d="cancel">Cancel</button>
+          ${hasRoster ? '<button class="btn" type="button" data-d="append">Add to current roster</button>' : ''}
+          <button class="btn primary" type="button" data-d="replace">${hasRoster ? 'Replace roster' : 'Import bots'}</button>
+        </div>`,
+        (a) => {
+          if (a === 'cancel') return closeDialog();
+          const items = teams.map(t => ({ id: uid(), bot: t.bot, students: t.names.join(', ') }));
+          closeDialog();
+          guarded('Importing bots', () => {
+            if (a === 'replace' || S.sample) { S.entries = []; clearResults(); }
+            S.entries.push(...items);
+            rosterChanged();
+            toast(`${items.length} bot${items.length > 1 ? 's' : ''} imported`);
+          });
+        });
+    };
+    reader.readAsText(file);
+  });
+
+  /* ---------- Dramatic shuffle ---------- */
+  function syncSound() { $('#sound').textContent = S.sound === false ? 'Sound: off' : 'Sound: on'; }
+  $('#sound').addEventListener('click', () => { S.sound = S.sound === false; save(); syncSound(); if (S.sound) beep(880, .08, .05); });
+
+  const wait = (ms) => new Promise(r => setTimeout(r, ms));
+  let shuffling = false;
+  function shuffleOnce() {
+    const a = S.entries;
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  }
+  async function dramaticShuffle() {
+    if (shuffling) return;
+    shuffling = true;
+    S.sample = false;
+    const banner = $('#shuffleBanner');
+    banner.querySelector('.sb-text').textContent = 'Shuffling';
+    banner.querySelector('.sb-sub').textContent = 'Every bot has an equal shot at every spot';
+    banner.className = 'shuffle-banner';
+    banner.hidden = false;
+    document.body.classList.add('is-shuffling');
+    document.querySelectorAll('#shuffle, #shuffleTop').forEach(b => b.disabled = true); syncUndo();
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // A random number of shuffles with a slowing tempo, so nobody can predict where it stops.
+    const steps = reduce ? 6 : 20 + Math.floor(Math.random() * 15);
+    for (let i = 0; i < steps; i++) {
+      shuffleOnce();
+      renderRoster(); B = build(); renderBracket();
+      beep(500 + Math.random() * 500, .04, .04);
+      const t = i / steps;
+      await wait(50 + 360 * Math.pow(t, 2.2) + Math.random() * 30);
+    }
+    // Last-second fakeout pause, then the final shuffle that counts.
+    await wait(250 + Math.random() * 450);
+    shuffleOnce();
+    save(); renderRoster(); B = build(); renderBracket();
+    beep(523, .25, .06, 'triangle'); setTimeout(() => beep(784, .45, .06, 'triangle'), 140);
+    document.body.classList.remove('is-shuffling');
+    document.body.classList.add('just-locked');
+    banner.className = 'shuffle-banner locked';
+    banner.querySelector('.sb-text').textContent = 'Spots locked in!';
+    banner.querySelector('.sb-sub').textContent = `${steps + 1} shuffles`;
+    await wait(1900);
+    banner.hidden = true;
+    document.body.classList.remove('just-locked');
+    document.querySelectorAll('#shuffle, #shuffleTop').forEach(b => b.disabled = false);
+    shuffling = false; syncUndo();
+  }
+  function startShuffle() {
+    if (shuffling) return;
+    if (S.entries.length < 2) return toast('Add at least two bots first');
+    guarded('Randomizing spots', dramaticShuffle);
+  }
+  $('#shuffle').addEventListener('click', startShuffle);
+  $('#shuffleTop').addEventListener('click', startShuffle);
+  $('#clearResults').addEventListener('click', () => {
+    if (!hasResults()) return toast('No results to reset');
+    confirmDialog('Reset all results?', 'Every recorded winner will be cleared. The roster and spots stay the same.', 'Reset results', () => { pushUndo('Reset results'); clearResults(); save(); refresh(); toast('Results reset'); });
+  });
+  $('#clearRoster').addEventListener('click', () => {
+    confirmDialog('Clear the roster?', 'All bots, student names and results will be removed.', 'Clear roster', () => {
+      pushUndo('Cleared roster');
+      S.entries = []; clearResults(); S.sample = false; save(); renderRoster(); refresh(); $('#newBot').focus();
+    });
+  });
+
+  /* ---------- Bracket + toolbar events ---------- */
+  $('#bracket').addEventListener('click', (ev) => {
+    const c = ev.target.closest('button.match'); if (c) return openBattle(c.dataset.k);
+    if (ev.target.closest('.champ-card:not(.empty)')) showChampion(true);
+  });
+  $('#nextBattle').addEventListener('click', () => {
+    if (!B) return toast('Add at least two bots first');
+    const nx = nextPlayable(null);
+    if (nx) openBattle(nx.key); else toast(B.rounds[B.R - 1][0].winner ? 'Tournament complete' : 'No battles ready');
+  });
+  function setScale(v) { S.scale = Math.min(1.8, Math.max(.6, Math.round(v * 10) / 10)); document.documentElement.style.setProperty('--scale', S.scale); save(); requestAnimationFrame(drawWires); }
+  $('#zoomIn').addEventListener('click', () => setScale(S.scale + .1));
+  $('#zoomOut').addEventListener('click', () => setScale(S.scale - .1));
+  function syncRosterToggle() {
+    $('#main').classList.toggle('roster-hidden', !S.rosterOpen);
+    $('#toggleRoster').textContent = S.rosterOpen ? 'Hide roster' : 'Edit roster';
+    requestAnimationFrame(drawWires);
+  }
+  $('#toggleRoster').addEventListener('click', () => { S.rosterOpen = !S.rosterOpen; save(); syncRosterToggle(); });
+  $('#fullscreen').addEventListener('click', () => {
+    try {
+      const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+      if (p && p.catch) p.catch(() => toast('Full screen is not available here'));
+    } catch (e) { toast('Full screen is not available here'); }
+  });
+  document.addEventListener('fullscreenchange', () => { $('#fullscreen').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
+
+  $('#backup').addEventListener('click', () => {
+    const data = JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, thirdPlace: S.thirdPlace, timerSecs: S.timerSecs });
+    showDialog(`<h3>Save / load tournament</h3>
+      <p>The bracket saves automatically in this browser. To move it to another computer, copy this code and paste it into the same box there, then press Load.</p>
+      <textarea id="backupText" aria-label="Tournament code">${esc(data)}</textarea>
+      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn" type="button" data-d="load">Load pasted code</button><button class="btn primary" type="button" data-d="copy">Copy code</button></div>`,
+      (a) => {
+        const ta = $('#backupText');
+        if (a === 'close') closeDialog();
+        if (a === 'copy') {
+          const done = () => toast('Code copied');
+          const fallback = () => { ta.focus(); ta.select(); toast('Code selected. Press Ctrl+C to copy'); };
+          try { navigator.clipboard.writeText(ta.value).then(done, fallback); } catch (e) { fallback(); }
+        }
+        if (a === 'load') {
+          try {
+            const d = JSON.parse(ta.value);
+            if (!d || !Array.isArray(d.entries)) throw new Error();
+            pushUndo('Loaded tournament');
+            S.entries = d.entries.filter(e => e && typeof e.bot === 'string').map(e => ({ id: e.id || uid(), bot: e.bot, students: e.students || '' }));
+            S.winners = d.winners && typeof d.winners === 'object' ? d.winners : {};
+            S.methods = d.methods && typeof d.methods === 'object' ? d.methods : {};
+            S.rematches = d.rematches && typeof d.rematches === 'object' ? d.rematches : {};
+            if (typeof d.thirdPlace === 'boolean') S.thirdPlace = d.thirdPlace;
+            if (d.timerSecs) S.timerSecs = d.timerSecs;
+            S.sample = false; save(); closeDialog(); renderRoster(); refresh(); toast('Tournament loaded');
+          } catch (e) { toast('That code could not be read. Paste the full code and try again'); }
+        }
+      });
+  });
+
+  $('#thirdToggle').addEventListener('change', (ev) => {
+    pushUndo(ev.target.checked ? 'Turned on 3rd-place battle' : 'Turned off 3rd-place battle');
+    S.thirdPlace = ev.target.checked;
+    if (!S.thirdPlace) { delete S.winners['3p']; delete S.methods['3p']; }
+    save(); refresh();
+  });
+
+  /* ---------- Undo ---------- */
+  const undoStack = [];
+  function snap() {
+    return JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, thirdPlace: S.thirdPlace });
+  }
+  function pushUndo(label) {
+    undoStack.push({ label, data: snap() });
+    if (undoStack.length > 40) undoStack.shift();
+    syncUndo();
+  }
+  function syncUndo() {
+    const b = $('#undo'); const last = undoStack[undoStack.length - 1];
+    b.disabled = !last || shuffling;
+    b.title = last ? 'Undo: ' + last.label : 'Nothing to undo';
+  }
+  function undo() {
+    if (shuffling) return;
+    const last = undoStack.pop();
+    if (!last) return toast('Nothing to undo');
+    const d = JSON.parse(last.data);
+    Object.assign(S, d); S.sample = false;
+    save(); renderRoster(); refresh(); syncUndo();
+    if (openKey && !findMatch(openKey)) closeBattle();
+    toast('Undid: ' + last.label);
+  }
+  $('#undo').addEventListener('click', undo);
+
+  /* ---------- On deck ---------- */
+  function sideName(mt, side) {
+    const p = side === 'a' ? mt.a : mt.b;
+    if (p) return esc(p.bot || 'Unnamed bot');
+    if (mt.third) return `Loser of B${B.rounds[B.R - 2][side === 'a' ? 0 : 1].num}`;
+    const f = B.rounds[mt.r - 1] && B.rounds[mt.r - 1][2 * mt.m + (side === 'a' ? 0 : 1)];
+    return `Winner of B${f && f.num ? f.num : '?'}`;
+  }
+  function renderOnDeck() {
+    const el = $('#ondeck');
+    if (!B) { el.hidden = true; return; }
+    const open = allMatches().filter(mt => !mt.isBye && !mt.winner);
+    if (!open.length) { el.hidden = true; return; }
+    const list = open.filter(playable).concat(open.filter(mt => !playable(mt))).slice(0, 3);
+    const labels = ['Up now', 'On deck', 'In the hole'];
+    el.innerHTML = list.map((mt, i) => `<button type="button" class="deck ${i === 0 ? 'now' : ''} ${playable(mt) ? '' : 'waiting'}" data-open="${mt.key}">
+      <span class="deck-label">${labels[i]}</span>
+      <span class="deck-num">Battle ${mt.num} · ${matchRound(mt)}</span>
+      <span class="deck-vs"><span>${sideName(mt, 'a')}</span><em>vs</em><span>${sideName(mt, 'b')}</span></span>
+    </button>`).join('');
+    el.hidden = false;
+  }
+  $('#ondeck').addEventListener('click', (ev) => { const d = ev.target.closest('[data-open]'); if (d) openBattle(d.dataset.open); });
+
+  /* ---------- Fight countdown ---------- */
+  let cdRunning = false;
+  async function fightCountdown(then) {
+    if (cdRunning) return;
+    cdRunning = true;
+    const ov = $('#countdown');
+    ov.hidden = false;
+    for (const s of ['3', '2', '1', 'FIGHT!']) {
+      const fight = s === 'FIGHT!';
+      ov.innerHTML = `<span class="cd ${fight ? 'fight' : ''}">${s}</span>`;
+      if (fight) { brass(523.25, 0, .5, .06); brass(783.99, 0, .5, .05); tone(130, 0, .6, .08, 'sawtooth'); }
+      else beep(440, .18, .06, 'square');
+      await wait(fight ? 750 : 850);
+    }
+    ov.hidden = true; ov.innerHTML = '';
+    cdRunning = false;
+    then();
+  }
+
+  /* ---------- Walk-out intros ---------- */
+  const FACTS = [
+    '{bot} has never been to Ohio and would like to keep it that way.',
+    'Is afraid of spoons. Nobody knows why.',
+    'Once tried to adopt a pigeon. The pigeon said no.',
+    'Has a pet rock named Gerald. Gerald is very supportive.',
+    'Insists that Tuesday is a color.',
+    'Owns 14 tiny hats but only ever wears the purple one.',
+    'Cannot whistle, but has strong opinions about people who can.',
+    'Firmly believes the ducks are planning something.',
+    'Has watched the same cooking show 312 times and still cannot make toast.',
+    'Is convinced the moon has been following it home.',
+    'Once won a pie-eating contest without eating any pie.',
+    'Thinks socks with sandals is a power move.',
+    'Its favorite number is "purple."',
+    '{bot} has a secret handshake with a squirrel that lives on the school roof.',
+    'Refuses to be in the same room as a bowl of grapes.',
+    'Writes poetry, but only about mashed potatoes.',
+    'Was once mistaken for a lost suitcase at the airport. It ended up in Denver.',
+    'Is the reigning champion of a board game it invented that nobody else understands.',
+    'Hums the alphabet backward when it gets nervous.',
+    'Believes clouds are just sky sheep.',
+    'Has never seen a giraffe and is not convinced they are real.',
+    'Collects bottle caps, rubber ducks, and grudges.',
+    'Has a strict bedtime of 7:42 p.m. No exceptions.',
+    'Is learning to play the kazoo. Progress is slow.',
+    'Claims it invented the high five. Nobody can prove otherwise.',
+    'Keeps a framed photo of a sandwich it really admired.',
+    '{bot} is banned from three bowling alleys for being "too intense."',
+    'Says "bless you" to every vacuum cleaner it meets.',
+    'Thinks pickles are just cucumbers that went on an adventure.',
+    'Has a favorite cloud. It is shaped like a slightly worried horse.',
+    'Can recite the entire school lunch menu from 2019.',
+    'Once got a postcard from a goose. It has not written back.',
+    'Is still upset about the ending of a movie it never watched.',
+    'Once challenged a lawn gnome to a duel. Still waiting for an answer.',
+    'Prefers its pancakes square.',
+    'Sends the moon a birthday card every year.',
+    'Is pretty sure it was a cat in a past life.',
+    'Its middle name is Gary.',
+    'Has never lost a thumb war. It has also never had thumbs.',
+    'Does not trust anyone who likes raisins.',
+    'Thinks "spatula" is the funniest word in the English language.',
+    '{bot} once got lost in a corn maze for six hours and loved every minute.',
+    'Will only listen to polka music before a battle.',
+    'Has a recurring dream about being chased by a very polite goose.',
+    'Keeps a diary. Every entry says "Today was a good day."',
+    'Once spent an entire weekend trying to fold a fitted sheet.',
+    'Is on a first-name basis with every crossing guard in town.',
+    'Practices dramatic entrances in front of a mirror every morning.',
+    'Believes it can talk to pigeons. The pigeons have not confirmed this.',
+    'Has eaten cereal with orange juice and refuses to talk about it.',
+    'Was once the mascot of a bowling team called the Gutter Gophers.',
+    '{bot} has a lucky sock. It is not sure where the other one went.'
+  ];
+  const NOUNS = ['mystery', 'spaghetti', 'bubble wrap', 'glitter', 'nonsense', 'drama', 'jellybeans', 'determination', 'attitude', 'marshmallow fluff', 'pancake batter', 'confidence', 'chaos'];
+  const pickN = (arr, n) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  function introCorner() {
+    const [f1, f2] = pickN(FACTS, 2);
+    return { facts: [f1, f2], weight: (1 + Math.random() * 4).toFixed(1), noun: pickN(NOUNS, 1)[0] };
+  }
+  let intro = null;
+  function teamRecord(id) {
+    let w = 0, l = 0;
+    allMatches().forEach(mt => { if (mt.isBye || !mt.winner) return; if (mt.winner.id === id) w++; else if (mt.a && mt.a.id === id || mt.b && mt.b.id === id) l++; });
+    return `${w}–${l}`;
+  }
+  function openIntro() {
+    const mt = findMatch(openKey);
+    if (!mt || !playable(mt)) return toast('Both bots need to be decided before intros');
+    intro = { key: mt.key, stage: 0, a: introCorner(), b: introCorner() };
+    while (intro.b.facts.some(f => intro.a.facts.includes(f))) intro.b = introCorner();
+    renderIntro();
+  }
+  function renderIntro() {
+    const ov = $('#introOverlay');
+    const mt = intro && findMatch(intro.key);
+    if (!mt || !playable(mt)) { closeIntro(); return; }
+    let html;
+    if (intro.stage < 2) {
+      const side = intro.stage === 0 ? 'a' : 'b', p = mt[side], info = intro[side];
+      const corner = side === 'a' ? 'red' : 'blue';
+      const fill = (f) => esc(f.replace(/\{bot\}/g, p.bot || 'This bot'));
+      html = `<div class="intro ${corner}" role="dialog" aria-modal="true" aria-label="Bot introduction">
+        <div class="intro-corner">In the ${corner} corner</div>
+        <div class="intro-weigh">Weighing in at ${info.weight} pounds of pure ${info.noun}…</div>
+        <div class="intro-bot">${esc(p.bot || 'Unnamed bot')}</div>
+        ${p.students ? `<div class="intro-stu">Driven by ${esc(p.students)}</div>` : ''}
+        <div class="intro-meta">Seed #${p.seed} · Tournament record ${teamRecord(p.id)}</div>
+        <ul class="facts">${info.facts.map(f => `<li><span class="fact-tag">Fun fact</span>${fill(f)}</li>`).join('')}</ul>
+        <div class="intro-acts">
+          <button class="btn ghost" type="button" data-i="skip">Skip intros</button>
+          <button class="btn" type="button" data-i="reroll">New facts</button>
+          ${intro.stage === 1 ? '<button class="btn" type="button" data-i="back">◂ Red corner</button>' : ''}
+          <button class="btn primary" type="button" data-i="next">${intro.stage === 0 ? 'Blue corner ▸' : 'Face-off ▸'}</button>
+        </div>
+      </div>`;
+    } else {
+      html = `<div class="intro faceoff" role="dialog" aria-modal="true" aria-label="Face-off">
+        <div class="intro-corner">${matchRound(mt)} · Battle ${mt.num}</div>
+        <div class="fo-row">
+          <div class="fo red"><span>${esc(mt.a.bot || 'Unnamed bot')}</span><small>${esc(mt.a.students || '')}</small></div>
+          <div class="fo-vs">VS</div>
+          <div class="fo blue"><span>${esc(mt.b.bot || 'Unnamed bot')}</span><small>${esc(mt.b.students || '')}</small></div>
+        </div>
+        <div class="intro-acts">
+          <button class="btn" type="button" data-i="back">◂ Blue corner</button>
+          <button class="btn" type="button" data-i="skip">Back to battle</button>
+          <button class="btn primary big" type="button" data-i="fight">3‑2‑1 Fight!</button>
+        </div>
+      </div>`;
+    }
+    ov.innerHTML = html;
+    ov.hidden = false;
+    tone(98, 0, .6, .09, 'sawtooth'); tone(65, 0, .8, .09, 'sine');
+    if (intro.stage === 2) { brass(392, .05, .2, .045); brass(523.25, .25, .45, .045); }
+    const f = ov.querySelector('[data-i="next"], [data-i="fight"]'); if (f) f.focus({ preventScroll: true });
+  }
+  function closeIntro() { intro = null; $('#introOverlay').hidden = true; $('#introOverlay').innerHTML = ''; }
+  function introAction(a) {
+    if (!intro) return;
+    if (a === 'next') { intro.stage = Math.min(2, intro.stage + 1); renderIntro(); }
+    else if (a === 'back') { intro.stage = Math.max(0, intro.stage - 1); renderIntro(); }
+    else if (a === 'reroll') { const side = intro.stage === 0 ? 'a' : 'b'; const other = intro[side === 'a' ? 'b' : 'a'].facts; let c; do { c = introCorner(); } while (c.facts.some(f => other.includes(f))); intro[side] = c; renderIntro(); }
+    else if (a === 'skip') closeIntro();
+    else if (a === 'fight') { closeIntro(); fightCountdown(startTimer); }
+  }
+  $('#introOverlay').addEventListener('click', (ev) => { const b = ev.target.closest('[data-i]'); if (b) introAction(b.dataset.i); });
+
+  /* ---------- Results + team stats ---------- */
+  function placements() {
+    const res = {};
+    if (!B) return res;
+    S.entries.forEach(e => { res[e.id] = { rank: 5, label: 'Still in' }; });
+    B.rounds.forEach((ms, r) => ms.forEach(mt => { const l = loserOf(mt); if (l) res[l.id] = { rank: 10 + (B.R - r), label: 'Out in ' + roundName(r, B.R) }; }));
+    if (B.third) {
+      [B.third.a, B.third.b].forEach(p => { if (p) res[p.id] = { rank: 5, label: 'Plays for 3rd' }; });
+      if (B.third.winner) { res[B.third.winner.id] = { rank: 3, label: '3rd place' }; res[loserOf(B.third).id] = { rank: 4, label: '4th place' }; }
+    }
+    const fin = B.rounds[B.R - 1][0];
+    if (fin.winner) { res[fin.winner.id] = { rank: 1, label: 'Champion' }; res[loserOf(fin).id] = { rank: 2, label: '2nd place' }; }
+    return res;
+  }
+  function teamStats() {
+    const place = placements();
+    const rows = S.entries.map(e => ({ e, w: 0, l: 0, m: { balloon: 0, pushed: 0, forfeit: 0, error: 0 }, re: 0, place: place[e.id] || { rank: 99, label: '' } }));
+    const byId = Object.fromEntries(rows.map(r => [r.e.id, r]));
+    allMatches().forEach(mt => {
+      if (mt.isBye) return;
+      const n = (S.rematches[mt.key] || []).length;
+      [mt.a, mt.b].forEach(p => { if (p && byId[p.id]) byId[p.id].re += n; });
+      if (!mt.winner) return;
+      const w = byId[mt.winner.id], l = byId[loserOf(mt).id];
+      if (w) { w.w++; const k = S.methods[mt.key]; if (k && k in w.m) w.m[k]++; }
+      if (l) l.l++;
+    });
+    return rows.sort((a, b) => a.place.rank - b.place.rank || a.e.seed - b.e.seed);
+  }
+  function showResults(tab) {
+    if (!B) return toast('Add at least two bots first');
+    let table, tsv, intro;
+    if (tab === 'teams') {
+      const rows = teamStats();
+      intro = 'Every team, ranked by how far they got. Wins are broken down by how they were won.';
+      table = `<table><thead><tr><th>Finish</th><th>Bot</th><th>W–L</th><th>Balloon pop</th><th>Pushed out</th><th>Forfeit</th><th>User error</th><th>Rematches</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td>${esc(r.place.label)}</td><td><strong>${esc(r.e.bot)}</strong><br><small>${esc(r.e.students)}</small></td><td>${r.w}–${r.l}</td><td>${r.m.balloon}</td><td>${r.m.pushed}</td><td>${r.m.forfeit}</td><td>${r.m.error}</td><td>${r.re}</td></tr>`).join('')}</tbody></table>`;
+      tsv = ['Finish\tBot\tStudents\tSeed\tWins\tLosses\tWins by balloon pop\tWins by push out\tWins by forfeit\tWins by opponent user error\tRematches'].concat(
+        rows.map(r => [r.place.label, r.e.bot, r.e.students, r.e.seed, r.w, r.l, r.m.balloon, r.m.pushed, r.m.forfeit, r.m.error, r.re].join('\t'))).join('\n');
+    } else {
+      const done = allMatches().filter(mt => !mt.isBye && (mt.winner || (S.rematches[mt.key] || []).length));
+      const rows = done.map(mt => ({ mt, w: mt.winner, l: loserOf(mt), how: methodLabel(S.methods[mt.key]), re: (S.rematches[mt.key] || []).map(x => x.reason) }));
+      const decided = rows.filter(r => r.w).length;
+      intro = `${decided} of ${B.total} battles decided.`;
+      table = rows.length ? `<table><thead><tr><th>#</th><th>Round</th><th>Winner</th><th>Defeated</th><th>How</th><th>Rematches</th></tr></thead><tbody>
+        ${rows.map(r => `<tr><td>${r.mt.num}</td><td>${esc(matchRound(r.mt))}</td><td>${r.w ? `<strong>${esc(r.w.bot)}</strong><br><small>${esc(r.w.students)}</small>` : '<em>Not decided</em>'}</td><td>${r.l ? `${esc(r.l.bot)}<br><small>${esc(r.l.students)}</small>` : ''}</td><td>${esc(r.how || '—')}</td><td>${r.re.length ? esc(r.re.join('; ')) : '—'}</td></tr>`).join('')}</tbody></table>` : '<p style="padding:14px">No battles decided yet.</p>';
+      tsv = ['Battle\tRound\tWinner\tWinner students\tLoser\tLoser students\tHow\tRematches'].concat(
+        rows.map(r => [r.mt.num, matchRound(r.mt), r.w ? r.w.bot : '', r.w ? r.w.students : '', r.l ? r.l.bot : '', r.l ? r.l.students : '', r.how, r.re.join('; ')].join('\t'))).join('\n');
+    }
+    showDialog(`<h3>Results</h3>
+      <div class="tabs" role="tablist"><button type="button" role="tab" class="tab ${tab !== 'teams' ? 'on' : ''}" aria-selected="${tab !== 'teams'}" data-d="battles">Battles</button><button type="button" role="tab" class="tab ${tab === 'teams' ? 'on' : ''}" aria-selected="${tab === 'teams'}" data-d="teams">Team stats</button></div>
+      <p>${intro} Copy pastes straight into a spreadsheet or gradebook.</p>
+      <div class="preview">${table}</div>
+      <textarea id="resultsText" class="vh" aria-hidden="true" tabindex="-1">${esc(tsv)}</textarea>
+      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn primary" type="button" data-d="copy">Copy for spreadsheet</button></div>`,
+      (a) => {
+        if (a === 'close') return closeDialog();
+        if (a === 'battles' || a === 'teams') return showResults(a);
+        const fallback = () => { const ta = $('#resultsText'); ta.classList.remove('vh'); ta.focus(); ta.select(); toast('Text selected. Press Ctrl+C to copy'); };
+        try { navigator.clipboard.writeText(tsv).then(() => toast('Copied'), fallback); } catch (e) { fallback(); }
+      }, 'wide');
+  }
+  $('#results').addEventListener('click', () => showResults('battles'));
+
+  /* ---------- Keyboard shortcuts ---------- */
+  const typing = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+  document.addEventListener('keydown', (ev) => {
+    const k = ev.key;
+    if (!$('#dialog').hidden) { if (k === 'Escape') closeDialog(); return; }
+    if (typing(ev.target)) { if (k === 'Escape') ev.target.blur(); return; }
+    if (cdRunning) { ev.preventDefault(); return; }
+    if ((ev.ctrlKey || ev.metaKey) && k.toLowerCase() === 'z') { ev.preventDefault(); undo(); return; }
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (intro) {
+      if (k === ' ' || k === 'Enter' || k === 'ArrowRight') { ev.preventDefault(); introAction(intro.stage === 2 ? 'fight' : 'next'); }
+      else if (k === 'ArrowLeft') introAction('back');
+      else if (k === 'Escape') closeIntro();
+      return;
+    }
+    if (!$('#champOverlay').hidden) { if (k === 'Escape' || k === 'Enter' || k === ' ') { ev.preventDefault(); closeChampion(); } return; }
+    const lk = k.toLowerCase();
+    if (openKey) {
+      const mt = findMatch(openKey);
+      if (k === 'Escape') closeBattle();
+      else if (k === 'ArrowLeft' || lk === 'r') { ev.preventDefault(); if (mt && mt.a && playable(mt)) pick(mt.a.id); }
+      else if (k === 'ArrowRight' || lk === 'b') { ev.preventDefault(); if (mt && mt.b && playable(mt)) pick(mt.b.id); }
+      else if (k === ' ') { ev.preventDefault(); timerToggle(); }
+      else if (lk === 'n') { const nx = nextPlayable(openKey); if (nx && nx.key !== openKey) openBattle(nx.key); }
+      else if (lk === 'i') openIntro();
+      else if (lk === 'u') undo();
+      else if (/^[1-4]$/.test(k) && mt && mt.winner) setMethod(METHODS[Number(k) - 1][0]);
+      return;
+    }
+    if (lk === 'n') $('#nextBattle').click();
+    else if (lk === 'u') undo();
+  });
+  // Stop Space from also "clicking" whichever button has focus in the battle screen
+  document.addEventListener('keyup', (ev) => { if (ev.key === ' ' && (openKey || intro) && !typing(ev.target) && $('#dialog').hidden) ev.preventDefault(); });
+
+  window.addEventListener('resize', () => requestAnimationFrame(drawWires));
+  window.addEventListener('resize', () => { if (fxRunning) sizeFx(); });
+  if (window.ResizeObserver) new ResizeObserver(() => drawWires()).observe($('#bracket'));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawWires);
+
+  document.documentElement.style.setProperty('--scale', S.scale);
+  syncRosterToggle();
+  syncSound();
+  syncUndo();
+  renderRoster();
+  renderBracket();
+})();
+</script>
+</body>
+</html>
