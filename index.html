@@ -485,6 +485,39 @@ kbd { font-family: var(--font-mono); font-size: .8rem; background: var(--panel-2
 .aw-mini-bot { font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; overflow-wrap: anywhere; }
 .aw-mini-stat { color: var(--muted); font-size: .9rem; }
 
+/* Wheel */
+#wheelOverlay { z-index: 60; background: var(--bg); }
+.wheel-wrap { width: min(760px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.wheel-title { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; color: var(--hazard); font-size: clamp(2rem, 6vw, 4rem); line-height: 1; }
+.wheel-legend { display: flex; gap: 10px 22px; flex-wrap: wrap; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: clamp(1.1rem, 2.4vw, 1.6rem); text-transform: uppercase; }
+.lg { display: inline-flex; align-items: center; gap: 8px; }
+.lg::before { content: ""; width: 18px; height: 18px; border-radius: 4px; background: var(--c); }
+.lg.red { --c: var(--red); } .lg.blue { --c: var(--blue); }
+.wheel-stage { position: relative; width: min(56vh, 86vw, 520px); aspect-ratio: 1; max-width: 100%; }
+.wheel-stage canvas { width: 100%; height: 100%; display: block; }
+.wheel-pointer { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); width: 0; height: 0; z-index: 2;
+  border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 34px solid var(--hazard); filter: drop-shadow(0 3px 4px rgba(0,0,0,.5)); }
+.wheel-result { min-height: 1.2em; font-family: var(--font-display); font-weight: 800; text-transform: uppercase; font-size: clamp(1.6rem, 4.5vw, 3rem); line-height: 1.05; }
+.wheel-result.show { animation: callIn .5s cubic-bezier(.2,1.5,.4,1) both; }
+.wheel-result.red { color: var(--red); } .wheel-result.blue { color: var(--blue); }
+
+/* Highlight reel */
+#reelOverlay { z-index: 61; background: var(--bg); }
+.reel { width: min(1200px, 100%); min-height: min(80vh, 760px); display: flex; flex-direction: column; justify-content: space-between; align-items: center; gap: 18px; text-align: center; }
+.reel-progress { width: 100%; height: 6px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+.reel-progress span { display: block; height: 100%; background: var(--hazard); transition: width .4s; }
+.reel-slide { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 10px; width: 100%; animation: reelIn .45s cubic-bezier(.2,1.2,.4,1) both; }
+@keyframes reelIn { from { opacity: 0; transform: translateX(80px) scale(.96); } }
+.reel-big { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; color: var(--hazard); font-size: clamp(3rem, 11vw, 9rem); line-height: .9; }
+.reel-w, .reel-l { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; line-height: .95; overflow-wrap: anywhere; text-wrap: balance; }
+.reel-w { font-size: clamp(2.8rem, 9vw, 7.5rem); }
+.reel-l { font-size: clamp(1.6rem, 4.5vw, 3.6rem); opacity: .55; text-decoration: line-through; text-decoration-thickness: 4px; }
+.reel-w.red, .reel-l.red { color: var(--red); } .reel-w.blue, .reel-l.blue { color: var(--blue); }
+.reel-def { font-family: var(--font-display); font-style: italic; font-weight: 700; text-transform: uppercase; letter-spacing: .2em; color: var(--muted); font-size: clamp(1rem, 2vw, 1.5rem); }
+.reel-tags { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.reel-tags span { font-family: var(--font-mono); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; }
+.reel-call { font-family: var(--font-display); font-weight: 800; font-style: italic; text-transform: uppercase; color: var(--hazard); font-size: clamp(1.3rem, 3vw, 2.4rem); margin-top: 8px; text-wrap: balance; animation: callIn .5s .5s cubic-bezier(.2,1.5,.4,1) both; }
+
 /* Dramatic shuffle */
 .shuffle-banner {
   position: fixed; left: 50%; bottom: calc(5vh + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
@@ -620,6 +653,8 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
 <div class="overlay" id="introOverlay" hidden></div>
 <div class="overlay" id="champOverlay" hidden></div>
 <div class="overlay" id="awardsOverlay" hidden></div>
+<div class="overlay" id="wheelOverlay" hidden></div>
+<div class="overlay" id="reelOverlay" hidden></div>
 <div class="countdown" id="countdown" hidden aria-live="assertive"></div>
 <div class="overlay" id="dialog" hidden></div>
 <canvas id="fx" hidden aria-hidden="true"></canvas>
@@ -644,7 +679,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   ];
 
   function fresh() {
-    return { entries: SAMPLE.map(([bot, students]) => ({ id: uid(), bot, students })), winners: {}, methods: {}, rematches: {}, overtime: {}, sample: true, scale: 1, rosterOpen: true, thirdPlace: true, timerSecs: 180 };
+    return { entries: SAMPLE.map(([bot, students]) => ({ id: uid(), bot, students })), winners: {}, methods: {}, rematches: {}, overtime: {}, wheel: {}, sample: true, scale: 1, rosterOpen: true, thirdPlace: true, timerSecs: 180 };
   }
   function load() {
     try {
@@ -652,12 +687,12 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       if (!raw) return null;
       const d = JSON.parse(raw);
       if (!d || !Array.isArray(d.entries)) return null;
-      return Object.assign({ winners: {}, methods: {}, rematches: {}, overtime: {}, scale: 1, rosterOpen: true, sample: false, thirdPlace: true, timerSecs: 180 }, d);
+      return Object.assign({ winners: {}, methods: {}, rematches: {}, overtime: {}, wheel: {}, scale: 1, rosterOpen: true, sample: false, thirdPlace: true, timerSecs: 180 }, d);
     } catch (e) { return null; }
   }
   let S = load() || fresh();
   function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-  function clearResults() { S.winners = {}; S.methods = {}; S.rematches = {}; S.overtime = {}; S.mystery = null; }
+  function clearResults() { S.winners = {}; S.methods = {}; S.rematches = {}; S.overtime = {}; S.wheel = {}; S.mystery = null; }
 
   const METHODS = [['balloon', 'Balloon pop', 'Balloon pop'], ['pushed', 'Pushed out by opponent', 'Pushed out'], ['forfeit', 'Forfeit', 'Forfeit'], ['error', 'Left arena due to user error', 'User error']];
   const methodLabel = (k, short) => { const m = METHODS.find(x => x[0] === k); return m ? m[short ? 2 : 1] : ''; };
@@ -751,8 +786,10 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     const old = S.winners[key];
     const mt0 = findMatch(key), who = id && mt0 ? [mt0.a, mt0.b].find(p => p && p.id === id) : null;
     pushUndo(id ? `${who ? who.bot : 'Winner'} wins Battle ${mt0 ? mt0.num : ''}` : `Cleared Battle ${mt0 ? mt0.num : ''}`);
-    cascadeKeys(key, old).forEach(x => { delete S.winners[x]; delete S.methods[x]; delete S.rematches[x]; delete S.overtime[x]; });
+    cascadeKeys(key, old).forEach(x => { delete S.winners[x]; delete S.methods[x]; delete S.rematches[x]; delete S.overtime[x]; delete S.wheel[x]; });
     delete S.methods[key];
+    const viaWheel = S.wheel[key]; delete S.wheel[key];
+    if (id && viaWheel === true && wheelPending === key) S.wheel[key] = true;
     if (id) S.winners[key] = id; else delete S.winners[key];
     S.sample = false;
     $('#sampleNotice').hidden = true;
@@ -1064,13 +1101,14 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
           ${isFinal && mt.winner ? '<button class="btn" type="button" data-do="champ">Show champion</button>' : ''}
           <button class="btn" type="button" data-do="rematch" ${playable(mt) && !mt.winner ? '' : 'disabled'}>Rematch / no contest</button>
           <button class="btn" type="button" data-do="intro" ${playable(mt) ? '' : 'disabled'}>Walk-out intros</button>
+          <button class="btn" type="button" data-do="wheel" ${playable(mt) && !mt.winner ? '' : 'disabled'}>Spin the wheel</button>
         </div>
         <div class="group">
           <button class="btn primary" type="button" data-do="next" ${next && next.key !== mt.key ? '' : 'disabled'}>${next && next.key !== mt.key ? `Next battle ▸ <span style="font-weight:500">(Battle ${next.num})</span>` : 'No other battles ready'}</button>
         </div>
       </div>
       ${sfxBoardHTML()}
-      <div class="keys" aria-hidden="true"><kbd>←</kbd> red wins <kbd>→</kbd> blue wins <kbd>1–4</kbd> how they won <kbd>Space</kbd> timer <kbd>I</kbd> intros <kbd>N</kbd> next <kbd>U</kbd> undo <kbd>5–0</kbd> sounds</div>
+      <div class="keys" aria-hidden="true"><kbd>←</kbd> red wins <kbd>→</kbd> blue wins <kbd>1–4</kbd> how they won <kbd>Space</kbd> timer <kbd>I</kbd> intros <kbd>W</kbd> wheel <kbd>N</kbd> next <kbd>U</kbd> undo <kbd>5–0</kbd> sounds</div>
     </div>`;
     ov.hidden = false;
     updateTimerUI();
@@ -1165,6 +1203,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       case 'rematch': rematchAsk = true; renderOverlay(); break;
       case 'cancelRematch': rematchAsk = false; renderOverlay(); break;
       case 'intro': openIntro(); break;
+      case 'wheel': openWheel(); break;
       case 'timer': timerToggle(); break;
       case 'treset': resetTimer(openKey); updateTimerUI(); break;
       case 'sudden': suddenDeath(); break;
@@ -1190,7 +1229,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <div class="cs-bot">${esc(fin.winner.bot || 'Unnamed bot')}</div>
       ${fin.winner.students ? `<div class="cs-stu">${esc(fin.winner.students)}</div>` : ''}
       ${(runner || third) ? `<div class="pods">${podium('2nd place', runner)}${podium('3rd place', third)}</div>` : ''}
-      <div class="intro-acts"><button class="btn" type="button" data-do="closeChamp">Back to bracket</button><button class="btn primary" type="button" data-do="awards">See the awards ▸</button></div>
+      <div class="intro-acts"><button class="btn" type="button" data-do="closeChamp">Back to bracket</button><button class="btn" type="button" data-do="reel">Highlight reel</button><button class="btn primary" type="button" data-do="awards">See the awards ▸</button></div>
     </div>`;
     ov.hidden = false;
     ov.querySelector('[data-do="closeChamp"]').focus();
@@ -1199,6 +1238,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   function closeChampion() { $('#champOverlay').hidden = true; }
   $('#champOverlay').addEventListener('click', (ev) => {
     if (ev.target.closest('[data-do="awards"]')) return openAwards();
+    if (ev.target.closest('[data-do="reel"]')) return openReel();
     if (ev.target === ev.currentTarget || ev.target.closest('[data-do="closeChamp"]')) closeChampion();
   });
 
@@ -1451,7 +1491,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   document.addEventListener('fullscreenchange', () => { $('#fullscreen').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
 
   $('#backup').addEventListener('click', () => {
-    const data = JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, thirdPlace: S.thirdPlace, timerSecs: S.timerSecs });
+    const data = JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, wheel: S.wheel, thirdPlace: S.thirdPlace, timerSecs: S.timerSecs });
     showDialog(`<h3>Save / load tournament</h3>
       <p>The bracket saves automatically in this browser. To move it to another computer, copy this code and paste it into the same box there, then press Load.</p>
       <textarea id="backupText" aria-label="Tournament code">${esc(data)}</textarea>
@@ -1474,6 +1514,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
             S.methods = d.methods && typeof d.methods === 'object' ? d.methods : {};
             S.rematches = d.rematches && typeof d.rematches === 'object' ? d.rematches : {};
             S.overtime = d.overtime && typeof d.overtime === 'object' ? d.overtime : {};
+            S.wheel = d.wheel && typeof d.wheel === 'object' ? d.wheel : {};
             if (typeof d.thirdPlace === 'boolean') S.thirdPlace = d.thirdPlace;
             if (d.timerSecs) S.timerSecs = d.timerSecs;
             S.sample = false; save(); closeDialog(); renderRoster(); refresh(); toast('Tournament loaded');
@@ -1492,7 +1533,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   /* ---------- Undo ---------- */
   const undoStack = [];
   function snap() {
-    return JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, mystery: S.mystery, thirdPlace: S.thirdPlace });
+    return JSON.stringify({ entries: S.entries.map(({ id, bot, students }) => ({ id, bot, students })), winners: S.winners, methods: S.methods, rematches: S.rematches, overtime: S.overtime, wheel: S.wheel, mystery: S.mystery, thirdPlace: S.thirdPlace });
   }
   function pushUndo(label) {
     undoStack.push({ label, data: snap() });
@@ -1729,7 +1770,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
         rows.map(r => [r.place.label, r.e.bot, r.e.students, r.e.seed, r.w, r.l, r.m.balloon, r.m.pushed, r.m.forfeit, r.m.error, r.re].join('\t'))).join('\n');
     } else {
       const done = allMatches().filter(mt => !mt.isBye && (mt.winner || (S.rematches[mt.key] || []).length));
-      const rows = done.map(mt => ({ mt, w: mt.winner, l: loserOf(mt), how: [methodLabel(S.methods[mt.key]), S.overtime[mt.key] && mt.winner ? 'sudden death' : ''].filter(Boolean).join(', '), re: (S.rematches[mt.key] || []).map(x => x.reason) }));
+      const rows = done.map(mt => ({ mt, w: mt.winner, l: loserOf(mt), how: [methodLabel(S.methods[mt.key]), S.overtime[mt.key] && mt.winner ? 'sudden death' : '', S.wheel[mt.key] && mt.winner ? 'wheel tiebreaker' : ''].filter(Boolean).join(', '), re: (S.rematches[mt.key] || []).map(x => x.reason) }));
       const decided = rows.filter(r => r.w).length;
       intro = `${decided} of ${B.total} battles decided.`;
       table = rows.length ? `<table><thead><tr><th>#</th><th>Round</th><th>Winner</th><th>Defeated</th><th>How</th><th>Rematches</th></tr></thead><tbody>
@@ -1742,10 +1783,11 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       <p>${intro} Copy pastes straight into a spreadsheet or gradebook.</p>
       <div class="preview">${table}</div>
       <textarea id="resultsText" class="vh" aria-hidden="true" tabindex="-1">${esc(tsv)}</textarea>
-      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn" type="button" data-d="awards">Show awards</button><button class="btn primary" type="button" data-d="copy">Copy for spreadsheet</button></div>`,
+      <div class="acts"><button class="btn" type="button" data-d="close">Close</button><button class="btn" type="button" data-d="awards">Show awards</button><button class="btn" type="button" data-d="reel">Highlight reel</button><button class="btn primary" type="button" data-d="copy">Copy for spreadsheet</button></div>`,
       (a) => {
         if (a === 'close') return closeDialog();
         if (a === 'awards') return openAwards();
+        if (a === 'reel') return openReel();
         if (a === 'battles' || a === 'teams') return showResults(a);
         const fallback = () => { const ta = $('#resultsText'); ta.classList.remove('vh'); ta.focus(); ta.select(); toast('Text selected. Press Ctrl+C to copy'); };
         try { navigator.clipboard.writeText(tsv).then(() => toast('Copied'), fallback); } catch (e) { fallback(); }
@@ -1962,7 +2004,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     } else {
       html = `<div class="aw-kicker">Tournament awards</div>
         <div class="aw-grid">${list.map(a => `<div class="aw-mini"><div class="aw-mini-title">${esc(a.title)}</div><div class="aw-mini-bot">${a.who.map(e => esc(e.bot || 'Unnamed bot')).join(' &amp; ')}</div><div class="aw-mini-stat">${esc(a.stat)}</div></div>`).join('')}</div>
-        <div class="intro-acts"><button class="btn" type="button" data-a="back">◂ Back</button><button class="btn primary" type="button" data-a="close">Back to bracket</button></div>`;
+        <div class="intro-acts"><button class="btn" type="button" data-a="back">◂ Back</button><button class="btn" type="button" data-a="close">Back to bracket</button><button class="btn primary big" type="button" data-a="reel">Play highlight reel ▸</button></div>`;
     }
     ov.innerHTML = `<div class="awards" role="dialog" aria-modal="true" aria-label="Tournament awards">${html}</div>`;
     ov.hidden = false;
@@ -1977,8 +2019,193 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     if (a === 'next') { aw.i = Math.min(aw.list.length, aw.i + 1); renderAwards(); }
     else if (a === 'back') { aw.i = Math.max(-1, aw.i - 1); renderAwards(); }
     else if (a === 'close') { aw = null; renderAwards(); }
+    else if (a === 'reel') openReel();
   }
   $('#awardsOverlay').addEventListener('click', (ev) => { const b = ev.target.closest('[data-a]'); if (b) awardsAction(b.dataset.a); });
+
+  /* ---------- Spin-the-wheel tiebreaker ---------- */
+  let wheel = null, wheelPending = null;
+  const SEGS = 8;
+  function openWheel() {
+    const mt = findMatch(openKey);
+    if (!mt || !playable(mt) || mt.winner) return toast('The wheel is for battles with no winner yet');
+    wheel = { key: mt.key, rot: -Math.PI / 2 - Math.PI / SEGS, spinning: false, result: null };
+    const ov = $('#wheelOverlay');
+    ov.innerHTML = `<div class="wheel-wrap" role="dialog" aria-modal="true" aria-label="Spin the wheel">
+      <div class="aw-kicker">Tiebreaker · Battle ${mt.num}</div>
+      <div class="wheel-title">Spin the wheel!</div>
+      <div class="wheel-legend"><span class="lg red">${esc(mt.a.bot || 'Red corner')}</span><span class="lg blue">${esc(mt.b.bot || 'Blue corner')}</span></div>
+      <div class="wheel-stage"><div class="wheel-pointer"></div><canvas id="wheelCanvas" aria-hidden="true"></canvas></div>
+      <div class="wheel-result" id="wheelResult" aria-live="polite"></div>
+      <div class="intro-acts" id="wheelActs"></div>
+    </div>`;
+    ov.hidden = false;
+    drawWheel(); wheelActs();
+  }
+  function wheelActs() {
+    const mt = findMatch(wheel.key); if (!mt) return;
+    const acts = $('#wheelActs');
+    if (wheel.spinning) { acts.innerHTML = ''; return; }
+    if (wheel.result) {
+      const p = wheel.result === 'a' ? mt.a : mt.b;
+      acts.innerHTML = `<button class="btn" type="button" data-w="cancel">Cancel</button><button class="btn" type="button" data-w="spin">Spin again</button><button class="btn primary big" type="button" data-w="declare">${esc(p.bot || 'This bot')} wins ▸</button>`;
+    } else {
+      acts.innerHTML = `<button class="btn" type="button" data-w="cancel">Cancel</button><button class="btn primary big" type="button" data-w="spin">Spin!</button>`;
+    }
+    const f = acts.querySelector('.btn.primary'); if (f) f.focus({ preventScroll: true });
+  }
+  function drawWheel() {
+    const cv = $('#wheelCanvas'); if (!cv || !wheel) return;
+    const mt = findMatch(wheel.key); if (!mt) return;
+    const size = cv.clientWidth, d = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(size * d)) { cv.width = Math.round(size * d); cv.height = Math.round(size * d); }
+    const c = cv.getContext('2d'); c.setTransform(d, 0, 0, d, 0, 0); c.clearRect(0, 0, size, size);
+    const css = getComputedStyle(document.documentElement), col = (v) => css.getPropertyValue(v).trim();
+    const R = size / 2 - 6, cx = size / 2, cy = size / 2, seg = Math.PI * 2 / SEGS;
+    for (let i = 0; i < SEGS; i++) {
+      const a0 = wheel.rot + i * seg, side = i % 2 ? 'b' : 'a', p = mt[side];
+      c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R, a0, a0 + seg); c.closePath();
+      c.fillStyle = col(side === 'a' ? '--red' : '--blue'); c.fill();
+      c.strokeStyle = col('--bg'); c.lineWidth = 3; c.stroke();
+      c.save(); c.translate(cx, cy); c.rotate(a0 + seg / 2);
+      c.fillStyle = '#fff'; c.textAlign = 'right'; c.textBaseline = 'middle';
+      let fs = Math.max(12, size / 20); const label = (p.bot || 'Bot').toUpperCase();
+      c.font = `800 ${fs}px "Saira Condensed", "Arial Narrow", sans-serif`;
+      while (c.measureText(label).width > R * 0.68 && fs > 10) { fs -= 1; c.font = `800 ${fs}px "Saira Condensed", "Arial Narrow", sans-serif`; }
+      c.fillText(label, R - 14, 0); c.restore();
+    }
+    c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.strokeStyle = col('--hazard'); c.lineWidth = 6; c.stroke();
+    c.beginPath(); c.arc(cx, cy, size * 0.07, 0, Math.PI * 2); c.fillStyle = col('--hazard'); c.fill();
+    c.beginPath(); c.arc(cx, cy, size * 0.035, 0, Math.PI * 2); c.fillStyle = col('--bg'); c.fill();
+  }
+  function segUnderPointer(rot) {
+    const seg = Math.PI * 2 / SEGS, twoPi = Math.PI * 2;
+    const local = (((-Math.PI / 2 - rot) % twoPi) + twoPi) % twoPi;
+    return Math.floor(local / seg);
+  }
+  function spinWheel() {
+    if (!wheel || wheel.spinning) return;
+    wheel.spinning = true; wheel.result = null;
+    $('#wheelResult').textContent = ''; $('#wheelResult').className = 'wheel-result';
+    wheelActs();
+    const start = wheel.rot, total = Math.PI * 2 * (5 + Math.random() * 3) + Math.random() * Math.PI * 2;
+    const dur = reduceMotion() ? 900 : 4500 + Math.random() * 2000, t0 = performance.now();
+    let lastSeg = segUnderPointer(start);
+    const step = (now) => {
+      const t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 4);
+      wheel.rot = start + total * e;
+      drawWheel();
+      const sgi = segUnderPointer(wheel.rot);
+      if (sgi !== lastSeg) { lastSeg = sgi; beep(1400 + Math.random() * 200, .025, .04, 'square'); }
+      if (t < 1) return requestAnimationFrame(step);
+      wheel.spinning = false;
+      wheel.result = sgi % 2 ? 'b' : 'a';
+      const mt = findMatch(wheel.key), p = mt[wheel.result];
+      const res = $('#wheelResult');
+      res.textContent = `The wheel picks ${p.bot || 'this bot'}!`;
+      res.className = 'wheel-result show ' + (wheel.result === 'a' ? 'red' : 'blue');
+      fanfare(false);
+      const r = $('#wheelCanvas').getBoundingClientRect(); burst(r.left + r.width / 2, r.top + 20, 120);
+      wheelActs();
+    };
+    requestAnimationFrame(step);
+  }
+  function closeWheel() { if (wheel && wheel.spinning) return; wheel = null; $('#wheelOverlay').hidden = true; $('#wheelOverlay').innerHTML = ''; }
+  function wheelAction(a) {
+    if (!wheel) return;
+    if (a === 'spin') spinWheel();
+    else if (a === 'cancel') closeWheel();
+    else if (a === 'declare' && wheel.result && !wheel.spinning) {
+      const mt = findMatch(wheel.key), p = mt[wheel.result], key = wheel.key;
+      closeWheel();
+      wheelPending = key; S.wheel[key] = true;
+      declare(key, p.id);
+      wheelPending = null;
+    }
+  }
+  $('#wheelOverlay').addEventListener('click', (ev) => { const b = ev.target.closest('[data-w]'); if (b) wheelAction(b.dataset.w); });
+  window.addEventListener('resize', () => { if (wheel) drawWheel(); });
+
+  /* ---------- Highlight reel ---------- */
+  let reel = null;
+  function buildReel() {
+    if (!B) return [];
+    const slides = [{ type: 'title' }];
+    allMatches().filter(mt => !mt.isBye && mt.winner).forEach(mt => slides.push({ type: 'battle', key: mt.key }));
+    const fin = B.rounds[B.R - 1][0];
+    if (fin.winner) slides.push({ type: 'champ' });
+    return slides;
+  }
+  function openReel() {
+    if (!B) return toast('Add at least two bots first');
+    const slides = buildReel();
+    if (slides.length < 2) return toast('Decide some battles first');
+    closeDialog(); closeChampion(); if (aw) { aw = null; renderAwards(); }
+    reel = { slides, i: 0, playing: true, timer: 0, captions: {} };
+    renderReel();
+  }
+  function whoosh() {
+    if (S.sound === false) return;
+    try {
+      const c = ac(), t = c.currentTime, n = noise(), bp = c.createBiquadFilter(), g = c.createGain();
+      bp.type = 'bandpass'; bp.Q.value = 1.5; bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(3500, t + .35);
+      env(g, t, [[.12, .12], [.4, 0.0001]]); n.connect(bp).connect(g).connect(c.destination); n.start(t); n.stop(t + .45);
+    } catch (e) {}
+  }
+  function renderReel() {
+    const ov = $('#reelOverlay');
+    clearTimeout(reel && reel.timer);
+    if (!reel) { ov.hidden = true; ov.innerHTML = ''; return; }
+    const { slides, i } = reel, sl = slides[i];
+    let body = '', hold = 3200;
+    if (sl.type === 'title') {
+      const champ = B.rounds[B.R - 1][0].winner;
+      body = `<div class="reel-slide rs-title"><div class="aw-kicker">${B.n} bots · ${B.total} battles</div><div class="reel-big">Tournament<br>highlights</div>${champ ? '' : '<div class="aw-blurb">So far…</div>'}</div>`;
+      hold = 2600;
+    } else if (sl.type === 'battle') {
+      const mt = findMatch(sl.key);
+      if (!mt || !mt.winner) { reel.i++; return reel.i < slides.length ? renderReel() : closeReel(); }
+      const l = loserOf(mt), wc = mt.winner === mt.a ? 'red' : 'blue', lc = wc === 'red' ? 'blue' : 'red';
+      const k = S.methods[mt.key];
+      if (!reel.captions[mt.key]) reel.captions[mt.key] = pick1(S.overtime[mt.key] ? CALLS.sudden : (CALLS[k] || CALLS.any));
+      const tags = [methodLabel(k), S.overtime[mt.key] ? 'Sudden death' : '', S.wheel[mt.key] ? 'Wheel tiebreaker' : '', (S.rematches[mt.key] || []).length ? `Rematch ×${S.rematches[mt.key].length}` : ''].filter(Boolean);
+      body = `<div class="reel-slide rs-battle">
+        <div class="aw-kicker">${esc(matchRound(mt))} · Battle ${mt.num}</div>
+        <div class="reel-w ${wc}">${esc(mt.winner.bot || 'Unnamed bot')}</div>
+        <div class="reel-def">defeats</div>
+        <div class="reel-l ${lc}">${esc(l.bot || 'Unnamed bot')}</div>
+        ${tags.length ? `<div class="reel-tags">${tags.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
+        <div class="reel-call">${esc(reel.captions[mt.key])}</div>
+      </div>`;
+    } else {
+      const fin = B.rounds[B.R - 1][0];
+      body = `<div class="reel-slide rs-champ"><div class="big-trophy">${ICONS.trophy}</div><div class="cs-label">Your champion</div><div class="cs-bot">${esc(fin.winner.bot || 'Unnamed bot')}</div>${fin.winner.students ? `<div class="cs-stu">${esc(fin.winner.students)}</div>` : ''}</div>`;
+      hold = 0;
+    }
+    ov.innerHTML = `<div class="reel" role="dialog" aria-modal="true" aria-label="Highlight reel">
+      <div class="reel-progress"><span style="width:${((i + 1) / slides.length) * 100}%"></span></div>
+      ${body}
+      <div class="intro-acts">
+        <button class="btn" type="button" data-r="prev" ${i === 0 ? 'disabled' : ''}>◂</button>
+        <button class="btn" type="button" data-r="toggle">${reel.playing && hold ? 'Pause' : 'Play'}</button>
+        <button class="btn" type="button" data-r="next" ${i === slides.length - 1 ? 'disabled' : ''}>▸</button>
+        <button class="btn primary" type="button" data-r="close">Back to bracket</button>
+      </div>
+    </div>`;
+    ov.hidden = false;
+    if (sl.type === 'champ') { fanfare(true); rain(5000); burst(innerWidth / 2, innerHeight * .4, 180); reel.playing = false; }
+    else whoosh();
+    if (reel.playing && hold) reel.timer = setTimeout(() => { if (reel && reel.i === i) { reel.i++; renderReel(); } }, hold);
+  }
+  function closeReel() { if (reel) clearTimeout(reel.timer); reel = null; renderReel(); }
+  function reelAction(a) {
+    if (!reel) return;
+    if (a === 'prev') { reel.i = Math.max(0, reel.i - 1); renderReel(); }
+    else if (a === 'next') { reel.i = Math.min(reel.slides.length - 1, reel.i + 1); renderReel(); }
+    else if (a === 'toggle') { reel.playing = !reel.playing; if (reel.playing && reel.i === reel.slides.length - 1) reel.i = 0; renderReel(); }
+    else if (a === 'close') closeReel();
+  }
+  $('#reelOverlay').addEventListener('click', (ev) => { const b = ev.target.closest('[data-r]'); if (b && !b.disabled) reelAction(b.dataset.r); });
 
   /* ---------- Keyboard shortcuts ---------- */
   const typing = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
@@ -1989,6 +2216,18 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     if (cdRunning) { ev.preventDefault(); return; }
     if ((ev.ctrlKey || ev.metaKey) && k.toLowerCase() === 'z') { ev.preventDefault(); undo(); return; }
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (wheel) {
+      if (k === ' ' || k === 'Enter') { ev.preventDefault(); if (!wheel.spinning) wheelAction(wheel.result ? 'declare' : 'spin'); }
+      else if (k === 'Escape') closeWheel();
+      return;
+    }
+    if (reel) {
+      if (k === ' ') { ev.preventDefault(); reelAction('toggle'); }
+      else if (k === 'ArrowRight') reelAction('next');
+      else if (k === 'ArrowLeft') reelAction('prev');
+      else if (k === 'Escape') reelAction('close');
+      return;
+    }
     if (aw) {
       if (k === ' ' || k === 'Enter' || k === 'ArrowRight') { ev.preventDefault(); awardsAction(aw.i >= aw.list.length ? 'close' : 'next'); }
       else if (k === 'ArrowLeft') awardsAction('back');
@@ -2011,6 +2250,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       else if (k === ' ') { ev.preventDefault(); timerToggle(); }
       else if (lk === 'n') { const nx = nextPlayable(openKey); if (nx && nx.key !== openKey) openBattle(nx.key); }
       else if (lk === 'i') openIntro();
+      else if (lk === 'w') openWheel();
       else if (lk === 'u') undo();
       else if (/^[1-4]$/.test(k) && mt && mt.winner) setMethod(METHODS[Number(k) - 1][0]);
       else if (/^[5-90]$/.test(k)) playSfx(SFX_LIST.find(x => x[2] === k)[0]);
@@ -2020,7 +2260,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     else if (lk === 'u') undo();
   });
   // Stop Space from also "clicking" whichever button has focus in the battle screen
-  document.addEventListener('keyup', (ev) => { if (ev.key === ' ' && (openKey || intro || aw) && !typing(ev.target) && $('#dialog').hidden) ev.preventDefault(); });
+  document.addEventListener('keyup', (ev) => { if (ev.key === ' ' && (openKey || intro || aw || wheel || reel) && !typing(ev.target) && $('#dialog').hidden) ev.preventDefault(); });
 
   window.addEventListener('resize', () => requestAnimationFrame(drawWires));
   window.addEventListener('resize', () => { if (fxRunning) sizeFx(); });
