@@ -1818,7 +1818,19 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       }));
     },
     cheer() { playBuf(getBuf('cheer', genCheer), 0.35); },
-    ooh() { playBuf(getBuf('ooh', genOoh), 0.3); },
+    crickets() {
+      const c = ac(), t = c.currentTime;
+      for (let g = 0; g < 5; g++) {
+        const gs = g * 0.95 + Math.random() * 0.1, f = 4300 + Math.random() * 300;
+        for (let k = 0; k < 3; k++) {
+          const s = t + gs + k * 0.075, o = c.createOscillator(), am = c.createOscillator(), amg = c.createGain(), out = c.createGain();
+          o.type = 'sine'; o.frequency.value = f; am.frequency.value = 55; amg.gain.value = 0.5;
+          out.gain.setValueAtTime(0.0001, s); out.gain.linearRampToValueAtTime(0.04, s + .01); out.gain.linearRampToValueAtTime(0.0001, s + .055);
+          am.connect(amg).connect(out.gain); o.connect(out).connect(c.destination);
+          o.start(s); o.stop(s + .06); am.start(s); am.stop(s + .06);
+        }
+      }
+    },
     drumroll() { playBuf(getBuf('drumroll', genDrumroll), 0.22); },
     trombone() {
       const c = ac(), t = c.currentTime, lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1100; lp.connect(c.destination);
@@ -1836,7 +1848,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       }));
     }
   };
-  const SFX_LIST = [['airhorn', 'Air horn', '5'], ['cheer', 'Crowd cheer', '6'], ['ooh', 'Ooooh', '7'], ['drumroll', 'Drumroll', '8'], ['trombone', 'Sad trombone', '9'], ['bell', 'Fight bell', '0']];
+  const SFX_LIST = [['airhorn', 'Air horn', '5'], ['cheer', 'Crowd cheer', '6'], ['crickets', 'Crickets', '7'], ['drumroll', 'Drumroll', '8'], ['trombone', 'Sad trombone', '9'], ['bell', 'Fight bell', '0']];
   function playSfx(name) {
     if (S.sound === false) { toast('Sound is off. Turn it on in the toolbar'); return; }
     sfxRaw(name);
@@ -1845,7 +1857,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     return `<div class="sfx-board" aria-label="Sound effects"><span class="sfx-label">Sound board</span>${SFX_LIST.map(([k, label, key]) => `<button type="button" class="sfx" data-sfx="${k}">${label}<kbd>${key}</kbd></button>`).join('')}<button type="button" class="btn ghost sfx-custom" data-do="sfxcustom">Use my own sounds</button></div>`;
   }
 
-  /* ---------- Sample-built sounds (crowd, ooh, drumroll) ---------- */
+  /* ---------- Sample-built sounds (crowd, drumroll) ---------- */
   // These are rendered sample-by-sample once, then cached and replayed with a little room echo.
   const bufCache = {};
   function getBuf(name, gen) { return bufCache[name] || (bufCache[name] = gen(ac().sampleRate)); }
@@ -1913,21 +1925,6 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
           f0: female ? rnd(230, 380) : rnd(140, 230),
           curve: (x) => rise * smooth(0, 0.22, x) - 2 * smooth(0.35, dur, x),
           env: (x) => smooth(0, 0.07, x) * (1 - smooth(dur - 0.3, dur, x))
-        });
-      }
-    });
-  }
-  function genOoh(sr) {
-    const secs = 2.7;
-    return makeBuffer(sr, secs, (L, Rr) => {
-      for (let k = 0; k < 30; k++) {
-        const female = Math.random() < 0.5, start = rnd(0, 0.12), dur = rnd(2.1, 2.5);
-        const up = rnd(2.5, 4.5), down = rnd(5, 8);
-        addVoice(L, Rr, sr, {
-          start, dur, female, amp: rnd(0.4, 0.8), vowel: Math.random() < 0.7 ? VOWELS.oo : VOWELS.oh,
-          f0: female ? rnd(200, 290) : rnd(105, 150),
-          curve: (x) => up * smooth(0.05, 0.6, x) - down * smooth(0.6, dur, x),
-          env: (x) => smooth(0, 0.45, x) * (1 - smooth(0.9, dur, x))
         });
       }
     });
@@ -2069,7 +2066,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   loadCustomSounds();
   loadFolderSounds();
   // Build the crowd sounds in the background so the first press plays instantly.
-  [['drumroll', genDrumroll], ['cheer', genCheer], ['ooh', genOoh]].forEach(([n, g], i) => setTimeout(() => { try { getBuf(n, g); } catch (e) {} }, 1500 + i * 400));
+  [['drumroll', genDrumroll], ['cheer', genCheer]].forEach(([n, g], i) => setTimeout(() => { try { getBuf(n, g); } catch (e) {} }, 1500 + i * 400));
 
   /* ---------- Announcer + farewells ---------- */
   const CALLS = {

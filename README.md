@@ -13,7 +13,7 @@ Open `index.html` in any modern browser; it needs no install or server. Keep the
 - **Walk-out intros** with random strange "fun facts," a 3-2-1 FIGHT! countdown, and a battle timer.
 - **How they won:** balloon pop, pushed out by opponent, forfeit, or left arena due to user error.
 - **Rematch / no contest** logging, a 3rd-place battle, an on-deck panel, undo, and keyboard shortcuts.
-- **Announcer calls** on every win, **farewell cards** for eliminated bots, and a **sound board** (air horn, crowd cheer, ooooh, drumroll, sad trombone, fight bell). Sound files placed in the `sounds/` folder (see `sounds/README.md` for the file names) are used automatically; you can also upload your own file per browser with **Use my own sounds** in the battle screen.
+- **Announcer calls** on every win, **farewell cards** for eliminated bots, and a **sound board** (air horn, crowd cheer, crickets, drumroll, sad trombone, fight bell). Sound files placed in the `sounds/` folder (see `sounds/README.md` for the file names) are used automatically; you can also upload your own file per browser with **Use my own sounds** in the battle screen.
 - **Sudden death:** a 30-second overtime when the timer runs out.
 - **Spin-the-wheel tiebreaker:** a red/blue wheel that fairly picks the winner when a battle can't be decided.
 - **Highlight reel:** an auto-playing slideshow of every battle result, ending on the champion.
