@@ -1,6 +1,6 @@
 # Sound credits
 
-All six recordings are public domain, dedicated by their authors under
+The recordings below are public domain, dedicated by their authors under
 [CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/). No credit is required; it is given here anyway.
 
 They come from the CC0 starter sound set in the [OpenXLR](https://github.com/emaspa/openxlr) project
@@ -14,5 +14,8 @@ For this tool they were converted from Ogg Vorbis to 128 kbps MP3 and renamed.
 | `crickets.mp3` | Crickets | [Freesound 129678](https://freesound.org/people/FreethinkerAnon/sounds/129678/) | FreethinkerAnon |
 | `drumroll.mp3` | Drumroll | [Freesound 201211](https://freesound.org/people/Scheffler/sounds/201211/) | Scheffler |
 | `trombone.mp3` | Sad trombone | [Freesound 175409](https://freesound.org/people/kirbydx/sounds/175409/) | kirbydx |
-| `bell.mp3` | Fight bell | [Freesound 173932](https://freesound.org/people/JohnsonBrandEditing/sounds/173932/) | JohnsonBrandEditing |
 
+
+## Fight bell
+
+`bell.mp3` is a boxing-ring bell generated for this project (three strikes, like the end of a round) by `tools/boxing_bell.py`. It is also released under CC0 1.0. To use a real recording instead, replace `bell.mp3` with a file of the same name.
