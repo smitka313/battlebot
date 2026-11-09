@@ -2026,6 +2026,11 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     });
   }
   let playingSrc = {};
+  function stopSfx(name) {
+    const p = playingSrc[name]; if (!p) return;
+    try { if (p.stop) p.stop(); else p.pause(); } catch (e) {}
+    playingSrc[name] = null;
+  }
   function sfxRaw(name) {
     if (S.sound === false) return;
     try {
@@ -2122,6 +2127,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     ov.innerHTML = '<span class="cd sd">Sudden<br>death</span>';
     sfxRaw('drumroll');
     await wait(2000);
+    stopSfx('drumroll');
     ov.innerHTML = '<span class="cd sd small">30 seconds!</span>';
     await wait(1100);
     ov.hidden = true; ov.innerHTML = '';
@@ -2205,7 +2211,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     ov.hidden = false;
     if (i >= 0 && i < list.length) {
       sfxRaw('drumroll');
-      setTimeout(() => { if (aw && aw.i === i) { brass(523.25, 0, .25, .05); brass(783.99, .2, .6, .05); const r = ov.querySelector('.aw-winner'); if (r) { const b = r.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2, 90); } } }, 2000);
+      setTimeout(() => { if (aw && aw.i === i) { stopSfx('drumroll'); brass(523.25, 0, .25, .05); brass(783.99, .2, .6, .05); const r = ov.querySelector('.aw-winner'); if (r) { const b = r.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2, 90); } } }, 2000);
     }
     const f = ov.querySelector('[data-a="next"]') || ov.querySelector('[data-a="close"]'); if (f) f.focus({ preventScroll: true });
   }

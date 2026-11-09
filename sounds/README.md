@@ -1,5 +1,7 @@
 # Sound board files
 
+This folder already includes public-domain recordings for the air horn, crowd cheer, drumroll, sad trombone and fight bell (see `CREDITS.md`). Replace any of them, or add `ooh.mp3`, by uploading a file with the same name.
+
 Put MP3 files in this folder with these exact names and the sound board will use them automatically. Any file that's missing falls back to the built-in sound.
 
 | File name | Sound board button | Key |
