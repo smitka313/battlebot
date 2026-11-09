@@ -402,9 +402,9 @@ kbd { font-family: var(--font-mono); font-size: .8rem; background: var(--panel-2
 
 /* 3-2-1 Fight countdown */
 .countdown { position: fixed; inset: 0; z-index: 65; display: grid; place-items: center; background: rgba(6,8,11,.82); pointer-events: all; }
-.cd { font-family: var(--font-display); font-weight: 800; font-size: clamp(9rem, 35vw, 26rem); line-height: 1; color: var(--fg); animation: cdIn .85s cubic-bezier(.2,1.3,.4,1) both; }
+.cd { font-family: var(--font-display); font-weight: 800; font-size: clamp(9rem, 35vw, 26rem); line-height: 1; color: var(--fg); animation: cdIn 1s cubic-bezier(.2,1.3,.4,1) both; }
 .cd.fight { color: var(--hazard); font-style: italic; font-size: clamp(5rem, 20vw, 16rem); text-shadow: 0 0 60px rgba(255,184,28,.5); animation: fightIn .75s cubic-bezier(.2,1.6,.4,1) both; }
-@keyframes cdIn { 0% { transform: scale(2.4); opacity: 0; } 30% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(.85); opacity: 0; } }
+@keyframes cdIn { 0% { transform: scale(2.4); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 85% { opacity: 1; } 100% { transform: scale(.85); opacity: 0; } }
 @keyframes fightIn { 0% { transform: scale(.3) rotate(-8deg); opacity: 0; } 40% { transform: scale(1.1) rotate(-3deg); opacity: 1; } 100% { transform: scale(1) rotate(-3deg); } }
 
 /* Walk-out intros */
@@ -990,7 +990,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     clearInterval(T.iv);
     T.iv = setInterval(() => {
       const left = timerLeft(), sec = Math.ceil(left);
-      if (left <= 0) { T.running = false; T.done = true; T.remaining = 0; clearInterval(T.iv); buzzer(); }
+      if (left <= 0) { T.running = false; T.done = true; T.remaining = 0; clearInterval(T.iv); playFx('buzzer', buzzer); }
       else if (sec <= 5 && sec !== T.lastSec) beep(1200, .06, .05);
       T.lastSec = sec;
       updateTimerUI();
@@ -1156,7 +1156,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       burst(r.left + r.width / 2, r.top + r.height * 0.35, isFinal ? 220 : 120);
       card.classList.add('celebrate');
     }
-    fanfare(isFinal);
+    celebrateSound(isFinal);
     if (isFinal) setTimeout(() => { if (openKey === key && findMatch(key).winner) showChampion(true); }, 1500);
   }
   function setMethod(k) {
@@ -1189,7 +1189,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       pushUndo(`Rematch logged for Battle ${mt.num}`);
       (S.rematches[openKey] = S.rematches[openKey] || []).push({ reason: rs.dataset.reason, at: Date.now() });
       rematchAsk = false; resetTimer(openKey); save(); renderBracket(); renderOverlay();
-      tone(330, 0, .18, .06, 'square'); tone(262, .2, .3, .06, 'square');
+      playFx('scratch', () => { tone(330, 0, .18, .06, 'square'); tone(262, .2, .3, .06, 'square'); });
       toast('Rematch logged. Reset the arena and go again!');
       return;
     }
@@ -1237,7 +1237,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     </div>`;
     ov.hidden = false;
     ov.querySelector('[data-do="closeChamp"]').focus();
-    if (celebrate) { rain(5500); burst(innerWidth / 2, innerHeight * 0.45, 200); fanfare(true); }
+    if (celebrate) { rain(5500); burst(innerWidth / 2, innerHeight * 0.45, 200); celebrateSound(true); }
   }
   function closeChampion() { $('#champOverlay').hidden = true; }
   $('#champOverlay').addEventListener('click', (ev) => {
@@ -1437,7 +1437,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     await wait(250 + Math.random() * 450);
     shuffleOnce();
     save(); renderRoster(); B = build(); renderBracket();
-    beep(523, .25, .06, 'triangle'); setTimeout(() => beep(784, .45, .06, 'triangle'), 140);
+    playFx('ding', () => { beep(523, .25, .06, 'triangle'); setTimeout(() => beep(784, .45, .06, 'triangle'), 140); });
     document.body.classList.remove('is-shuffling');
     document.body.classList.add('just-locked');
     banner.className = 'shuffle-banner locked';
@@ -1592,12 +1592,15 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     cdRunning = true;
     const ov = $('#countdown');
     ov.hidden = false;
+    // The real countdown recording beeps once a second: 3, 2, 1, then a higher GO beep.
+    const realBeeps = !!folder.countdown && S.sound !== false;
+    if (realBeeps) playFx('countdown');
     for (const s of ['3', '2', '1', 'FIGHT!']) {
       const fight = s === 'FIGHT!';
       ov.innerHTML = `<span class="cd ${fight ? 'fight' : ''}">${s}</span>`;
-      if (fight) { brass(523.25, 0, .5, .06); brass(783.99, 0, .5, .05); tone(130, 0, .6, .08, 'sawtooth'); }
-      else beep(440, .18, .06, 'square');
-      await wait(fight ? 750 : 850);
+      if (fight) sfxRaw('bell');
+      else if (!realBeeps) beep(440, .18, .06, 'square');
+      await wait(fight ? 900 : 1000);
     }
     ov.hidden = true; ov.innerHTML = '';
     cdRunning = false;
@@ -1727,8 +1730,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
         setTimeout(() => { if (intro && intro.stage === st && intro.key === key) sfxRaw('bell'); }, 500);
       } else {
         stopSfx('bell');
-        tone(98, 0, .6, .09, 'sawtooth'); tone(65, 0, .8, .09, 'sine');
-        brass(392, .05, .2, .045); brass(523.25, .25, .45, .045);
+        sfxRaw('airhorn');
       }
     }
     const f = ov.querySelector('[data-i="next"], [data-i="fight"]'); if (f) f.focus({ preventScroll: true });
@@ -2021,8 +2023,21 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
   // Sound files kept in a "sounds" folder next to this page (for example sounds/cheer.mp3).
   // Order of preference: a file you uploaded in this browser, then the sounds folder, then the built-in sound.
   const folder = {};   // name -> HTMLAudioElement that loaded successfully
+  // Other real sounds used around the tool (not on the sound board).
+  const EXTRA_SOUNDS = ['tada', 'buzzer', 'whoosh', 'scratch', 'ding', 'countdown'];
+  function playFx(name, fallback) {
+    if (S.sound === false) return;
+    const a = folder[name];
+    if (!a) { if (fallback) fallback(); return; }
+    try { a.currentTime = 0; const pr = a.play(); if (pr && pr.catch) pr.catch(() => { delete folder[name]; if (fallback) fallback(); }); }
+    catch (e) { if (fallback) fallback(); }
+  }
+  function celebrateSound(big) {
+    playFx('tada', () => fanfare(big));
+    if (big) setTimeout(() => sfxRaw('cheer'), 700);
+  }
   function loadFolderSounds() {
-    SFX_LIST.forEach(([k]) => {
+    SFX_LIST.map(x => x[0]).concat(EXTRA_SOUNDS).forEach((k) => {
       try {
         const a = new Audio();
         a.preload = 'auto';
@@ -2219,7 +2234,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
     ov.hidden = false;
     if (i >= 0 && i < list.length) {
       sfxRaw('drumroll');
-      setTimeout(() => { if (aw && aw.i === i) { stopSfx('drumroll'); brass(523.25, 0, .25, .05); brass(783.99, .2, .6, .05); const r = ov.querySelector('.aw-winner'); if (r) { const b = r.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2, 90); } } }, 2000);
+      setTimeout(() => { if (aw && aw.i === i) { stopSfx('drumroll'); playFx('tada', () => { brass(523.25, 0, .25, .05); brass(783.99, .2, .6, .05); }); const r = ov.querySelector('.aw-winner'); if (r) { const b = r.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2, 90); } } }, 2000);
     }
     const f = ov.querySelector('[data-a="next"]') || ov.querySelector('[data-a="close"]'); if (f) f.focus({ preventScroll: true });
   }
@@ -2313,7 +2328,7 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       const res = $('#wheelResult');
       res.textContent = `The wheel picks ${p.bot || 'this bot'}!`;
       res.className = 'wheel-result show ' + (wheel.result === 'a' ? 'red' : 'blue');
-      fanfare(false);
+      celebrateSound(false);
       const r = $('#wheelCanvas').getBoundingClientRect(); burst(r.left + r.width / 2, r.top + 20, 120);
       wheelActs();
     };
@@ -2402,8 +2417,8 @@ body.just-locked .round:first-child .match:not(.bye) { animation: glow 1.4s ease
       </div>
     </div>`;
     ov.hidden = false;
-    if (sl.type === 'champ') { fanfare(true); rain(5000); burst(innerWidth / 2, innerHeight * .4, 180); reel.playing = false; }
-    else whoosh();
+    if (sl.type === 'champ') { celebrateSound(true); rain(5000); burst(innerWidth / 2, innerHeight * .4, 180); reel.playing = false; }
+    else playFx('whoosh', whoosh);
     if (reel.playing && hold) reel.timer = setTimeout(() => { if (reel && reel.i === i) { reel.i++; renderReel(); } }, hold);
   }
   function closeReel() { if (reel) clearTimeout(reel.timer); reel = null; renderReel(); }

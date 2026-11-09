@@ -14,6 +14,12 @@ For this tool they were converted from Ogg Vorbis to 128 kbps MP3 and renamed.
 | `crickets.mp3` | Crickets | [Freesound 129678](https://freesound.org/people/FreethinkerAnon/sounds/129678/) | FreethinkerAnon |
 | `drumroll.mp3` | Drumroll | [Freesound 201211](https://freesound.org/people/Scheffler/sounds/201211/) | Scheffler |
 | `trombone.mp3` | Sad trombone | [Freesound 175409](https://freesound.org/people/kirbydx/sounds/175409/) | kirbydx |
+| `tada.mp3` | Winner fanfare | [Freesound 397355](https://freesound.org/people/plasterbrain/sounds/397355/) | plasterbrain |
+| `buzzer.mp3` | Timer runs out | [Freesound 54047](https://freesound.org/people/guitarguy1985/sounds/54047/) | guitarguy1985 |
+| `countdown.mp3` | 3-2-1 countdown beeps | [Freesound 368779](https://freesound.org/people/gurie/sounds/368779/) | gurie |
+| `scratch.mp3` | Rematch logged | [Freesound 71853](https://freesound.org/people/ludvique/sounds/71853/) | ludvique |
+| `ding.mp3` | Shuffle "locked in" | [Freesound 173932](https://freesound.org/people/JohnsonBrandEditing/sounds/173932/) | JohnsonBrandEditing |
+| `whoosh.mp3` | Highlight reel slides | [Freesound 60013](https://freesound.org/people/qubodup/sounds/60013/) | qubodup |
 
 
 ## Fight bell
